@@ -1,211 +1,244 @@
 import { Request, Response } from 'express';
-import { hashPassword, comparePassword, generateToken } from '../services/auth.service';
-import User, { IUser } from '../models/user.model';
-import { sendTicketEmail } from '../services/email.service';
+import { User } from '../models/user.model';
+import { hashPassword, comparePassword, generateToken, verifyToken } from '../services/auth.service';
+import { emailService } from '../services/email.service';
 import config from '../config';
 import logger from '../utils/logger';
-import crypto from 'crypto';
-import mongoose from 'mongoose';
 
 /**
  * Register a new user
- * @route POST /api/auth/register
  */
 export const register = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email, password, name, registrationSecret } = req.body;
-
-    // Validate required fields
-    if (!email || !password) {
-      res.status(400).json({ success: false, message: 'Email and password are required' });
+    const { email, password, registrationSecret } = req.body;
+    
+    // Validate input
+    if (!email || !password || !registrationSecret) {
+      res.status(400).json({ 
+        success: false, 
+        message: 'Email, password, and registration secret are required' 
+      });
       return;
     }
-
-    // Validate registration secret
+    
+    // Verify registration secret
     if (registrationSecret !== config.registrationSecret) {
-      res.status(403).json({ success: false, message: 'Invalid registration secret' });
+      res.status(403).json({ 
+        success: false, 
+        message: 'Invalid registration secret' 
+      });
       return;
     }
-
+    
     // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      res.status(409).json({ success: false, message: 'Email is already registered' });
+      res.status(409).json({ 
+        success: false, 
+        message: 'User already exists' 
+      });
       return;
     }
-
+    
     // Hash password and create user
     const passwordHash = await hashPassword(password);
     const newUser = new User({
       email,
       passwordHash,
-      name,
-    });    // Save user to database
+      createdAt: new Date()
+    });
+    
     await newUser.save();
     
-    // Generate token for the new user
-    const token = generateToken({ userId: String(newUser._id) });
-
-    // Return success response with token
+    // Generate JWT token
+    const token = generateToken({ userId: (newUser._id as any).toString() });
+    
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
       token,
       user: {
-        id: newUser._id.toString(),
+        id: newUser._id,
         email: newUser.email,
-        name: newUser.name,
-      },
+        createdAt: newUser.createdAt
+      }
     });
   } catch (error) {
     logger.error('Registration error', { error });
-    res.status(500).json({ success: false, message: 'Error registering user' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Registration failed' 
+    });
   }
 };
 
 /**
- * Login a user
- * @route POST /api/auth/login
+ * Login user
  */
 export const login = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
-
-    // Validate required fields
+    
+    // Validate input
     if (!email || !password) {
-      res.status(400).json({ success: false, message: 'Email and password are required' });
-      return;
-    }
-
-    // Find user by email
-    const user = await User.findOne({ email });
-    if (!user) {
-      res.status(401).json({ success: false, message: 'Invalid email or password' });
-      return;
-    }
-
-    // Verify password
-    const isPasswordValid = await comparePassword(password, user.passwordHash);
-    if (!isPasswordValid) {      res.status(401).json({ success: false, message: 'Invalid email or password' });
+      res.status(400).json({ 
+        success: false, 
+        message: 'Email and password are required' 
+      });
       return;
     }
     
-    // Generate token
-    const token = generateToken({ userId: String(user._id) });
-
-    // Return success response with token
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      res.status(401).json({ 
+        success: false, 
+        message: 'Invalid credentials' 
+      });
+      return;
+    }
+    
+    // Verify password
+    const isPasswordValid = await comparePassword(password, user.passwordHash);
+    if (!isPasswordValid) {
+      res.status(401).json({ 
+        success: false, 
+        message: 'Invalid credentials' 
+      });
+      return;
+    }
+    
+    // Generate JWT token
+    const token = generateToken({ userId: (user._id as any).toString() });
+    
     res.status(200).json({
       success: true,
       message: 'Login successful',
       token,
       user: {
-        id: user._id.toString(),
+        id: user._id,
         email: user.email,
-        name: user.name,
-      },
+        createdAt: user.createdAt
+      }
     });
   } catch (error) {
     logger.error('Login error', { error });
-    res.status(500).json({ success: false, message: 'Error during login' });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Login failed' 
+    });
   }
 };
 
 /**
- * Request password reset
- * @route POST /api/auth/forgot-password
+ * Send password reset email
  */
 export const forgotPassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const { email } = req.body;
-
-    // Validate email
+    
     if (!email) {
-      res.status(400).json({ success: false, message: 'Email is required' });
-      return;
-    }
-
-    // Find user by email
-    const user = await User.findOne({ email });
-    if (!user) {
-      // For security reasons, don't reveal if email exists or not
-      res.status(200).json({
-        success: true,
-        message: 'If a matching account was found, a password reset link has been sent',
+      res.status(400).json({ 
+        success: false, 
+        message: 'Email is required' 
       });
       return;
     }
-
+    
+    // Find user
+    const user = await User.findOne({ email });
+    if (!user) {
+      // Don't reveal if user exists or not
+      res.status(200).json({ 
+        success: true, 
+        message: 'If the email exists, a password reset link has been sent' 
+      });
+      return;
+    }
+    
     // Generate reset token (valid for 1 hour)
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    const resetToken = generateToken({ userId: (user._id as any).toString() });
+    
+    // Save reset token to user (optional, for additional security)
     user.resetPasswordToken = resetToken;
     user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
     await user.save();
-
-    // Create reset URL
-    const resetUrl = `${config.frontendUrl}/reset-password/${resetToken}`;
-
-    // Send password reset email
-    // This example uses a simplified email, you'd want to use your email service
-    /*
-    await sendPasswordResetEmail(
-      user.email,
-      user.name || 'User',
-      resetUrl
-    );
-    */
-
-    // Log the reset URL for development (remove in production)
-    logger.debug('Password reset link', { resetUrl, email });
-
-    // Return success response
-    res.status(200).json({
-      success: true,
-      message: 'If a matching account was found, a password reset link has been sent',
+    
+    // Send reset email
+    const resetUrl = `${config.frontendUrl}/reset-password?token=${resetToken}`;
+    
+    try {
+      await emailService.sendPasswordResetEmail(user.email, resetUrl);
+      logger.info('Password reset email sent', { email: user.email });
+    } catch (emailError) {
+      logger.error('Failed to send reset email', { error: emailError });
+      // Don't fail the request if email fails
+    }
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'If the email exists, a password reset link has been sent' 
     });
   } catch (error) {
-    logger.error('Password reset request error', { error });
-    res.status(500).json({ success: false, message: 'Error processing password reset request' });
+    logger.error('Forgot password error', { error });
+    res.status(500).json({ 
+      success: false, 
+      message: 'Password reset request failed' 
+    });
   }
 };
 
 /**
  * Reset password with token
- * @route POST /api/auth/reset-password
  */
 export const resetPassword = async (req: Request, res: Response): Promise<void> => {
   try {
     const { token, newPassword } = req.body;
-
-    // Validate required fields
+    
     if (!token || !newPassword) {
-      res.status(400).json({ success: false, message: 'Token and new password are required' });
+      res.status(400).json({ 
+        success: false, 
+        message: 'Token and new password are required' 
+      });
       return;
     }
 
-    // Find user by reset token and check expiration
-    const user = await User.findOne({
-      resetPasswordToken: token,
-      resetPasswordExpires: { $gt: Date.now() },
-    });
-
+    // Verify the reset token
+    const decoded = verifyToken(token);
+    
+    // Find user and check if reset token is still valid
+    const user = await User.findById(decoded.userId);
     if (!user) {
-      res.status(400).json({ success: false, message: 'Password reset token is invalid or has expired' });
+      res.status(404).json({ success: false, message: 'User not found' });
       return;
     }
 
-    // Update password
+    // Check if token matches and hasn't expired
+    if (user.resetPasswordToken !== token || 
+        !user.resetPasswordExpires || 
+        user.resetPasswordExpires < new Date()) {
+      res.status(400).json({ 
+        success: false, 
+        message: 'Invalid or expired reset token' 
+      });
+      return;
+    }
+
+    // Hash new password and save
     user.passwordHash = await hashPassword(newPassword);
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
     await user.save();
 
-    // Return success response
-    res.status(200).json({
-      success: true,
-      message: 'Password has been reset successfully',
+    res.status(200).json({ 
+      success: true, 
+      message: 'Password reset successful' 
     });
   } catch (error) {
     logger.error('Password reset error', { error });
-    res.status(500).json({ success: false, message: 'Error resetting password' });
+    res.status(400).json({ 
+      success: false, 
+      message: 'Invalid or expired token' 
+    });
   }
 };

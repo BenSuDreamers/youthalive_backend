@@ -39,40 +39,38 @@ const comparePassword = (plainPassword, hash) => __awaiter(void 0, void 0, void 
         return yield bcryptjs_1.default.compare(plainPassword, hash);
     }
     catch (error) {
-        logger_1.default.error('Error comparing passwords', { error });
+        logger_1.default.error('Error comparing password', { error });
         throw new Error('Password comparison failed');
     }
 });
 exports.comparePassword = comparePassword;
 /**
- * Generate a JWT token for authentication
+ * Generate a JWT token
  */
 const generateToken = (payload) => {
-    try { // Need to use Buffer.from to convert to a format jwt.sign accepts
-        const secret = Buffer.from(config_1.default.jwt.secret, 'utf8');
+    try {
         const options = {
-            expiresIn: '1d' // Fixed to 1 day
+            expiresIn: config_1.default.jwt.expiresIn
         };
-        return jsonwebtoken_1.default.sign(payload, secret, options);
+        return jsonwebtoken_1.default.sign(payload, config_1.default.jwt.secret, options);
     }
     catch (error) {
-        logger_1.default.error('Error generating JWT token', { error });
+        logger_1.default.error('Error generating token', { error });
         throw new Error('Token generation failed');
     }
 };
 exports.generateToken = generateToken;
 /**
- * Verify and decode a JWT token
+ * Verify a JWT token
  */
 const verifyToken = (token) => {
     try {
-        const secret = Buffer.from(config_1.default.jwt.secret, 'utf8');
-        const decoded = jsonwebtoken_1.default.verify(token, secret);
+        const decoded = jsonwebtoken_1.default.verify(token, config_1.default.jwt.secret);
         return decoded;
     }
     catch (error) {
-        logger_1.default.error('Invalid token', { error });
-        throw new Error('Invalid token');
+        logger_1.default.error('Error verifying token', { error });
+        throw new Error('Token verification failed');
     }
 };
 exports.verifyToken = verifyToken;

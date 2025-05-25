@@ -6,11 +6,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
 const event_controller_1 = require("../controllers/event.controller");
 const router = express_1.default.Router();
-/**
- * @route POST /api/webhooks
- * @desc Process webhooks from Jotform
- * @access Public
- */
-router.post('/', event_controller_1.webhookHandler);
+// Jotform webhook endpoint (no auth required)
+router.post('/jotform', event_controller_1.webhookHandler);
 exports.default = router;
 //# sourceMappingURL=webhook.routes.js.map

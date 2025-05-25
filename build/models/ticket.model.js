@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Ticket = void 0;
 const mongoose_1 = require("mongoose");
 // Ticket schema
 const ticketSchema = new mongoose_1.Schema({
@@ -66,5 +67,5 @@ ticketSchema.pre('save', function (next) {
 });
 // Create and export the Ticket model
 const Ticket = (0, mongoose_1.model)('Ticket', ticketSchema);
-exports.default = Ticket;
+exports.Ticket = Ticket;
 //# sourceMappingURL=ticket.model.js.map

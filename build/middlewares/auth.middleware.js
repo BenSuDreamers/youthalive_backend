@@ -14,7 +14,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.authenticateJWT = void 0;
 const auth_service_1 = require("../services/auth.service");
-const user_model_1 = __importDefault(require("../models/user.model"));
+const user_model_1 = require("../models/user.model");
 const logger_1 = __importDefault(require("../utils/logger"));
 /**
  * Middleware to authenticate requests using JWT
@@ -44,7 +44,7 @@ const authenticateJWT = (req, res, next) => __awaiter(void 0, void 0, void 0, fu
             return;
         }
         // Find the user
-        const user = yield user_model_1.default.findById(decoded.userId);
+        const user = yield user_model_1.User.findById(decoded.userId);
         if (!user) {
             res.status(401).json({
                 success: false,
@@ -54,8 +54,7 @@ const authenticateJWT = (req, res, next) => __awaiter(void 0, void 0, void 0, fu
         } // Add user to request object
         req.user = {
             id: String(user._id),
-            email: user.email,
-            name: user.name,
+            email: user.email
         };
         // Continue to the next middleware
         next();

@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Event = void 0;
 const mongoose_1 = require("mongoose");
 // Event schema
 const eventSchema = new mongoose_1.Schema({
@@ -37,5 +38,5 @@ eventSchema.pre('save', function (next) {
 });
 // Create and export the Event model
 const Event = (0, mongoose_1.model)('Event', eventSchema);
-exports.default = Event;
+exports.Event = Event;
 //# sourceMappingURL=event.model.js.map

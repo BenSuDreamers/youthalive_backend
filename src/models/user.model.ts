@@ -1,15 +1,12 @@
-import { Schema, model, Document, Model, Types } from 'mongoose';
+import mongoose, { Schema, Document } from 'mongoose';
 
 // User interface
 export interface IUser extends Document {
-  _id: Types.ObjectId;
   email: string;
   passwordHash: string;
-  name?: string;
+  createdAt: Date;
   resetPasswordToken?: string;
   resetPasswordExpires?: Date;
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 // User schema
@@ -18,40 +15,25 @@ const userSchema = new Schema<IUser>({
     type: String,
     required: true,
     unique: true,
-    trim: true,
     lowercase: true,
+    trim: true
   },
   passwordHash: {
     type: String,
-    required: true,
-  },
-  name: {
-    type: String,
-    trim: true,
-  },
-  resetPasswordToken: {
-    type: String,
-  },
-  resetPasswordExpires: {
-    type: Date,
+    required: true
   },
   createdAt: {
     type: Date,
-    default: Date.now,
+    default: Date.now
   },
-  updatedAt: {
+  resetPasswordToken: {
+    type: String,
+    required: false
+  },
+  resetPasswordExpires: {
     type: Date,
-    default: Date.now,
-  },
+    required: false
+  }
 });
 
-// Update the updatedAt field on save
-userSchema.pre('save', function(next) {
-  this.updatedAt = new Date();
-  next();
-});
-
-// Create and export the User model
-const User: Model<IUser> = model<IUser>('User', userSchema);
-
-export default User;
+export const User = mongoose.model<IUser>('User', userSchema);

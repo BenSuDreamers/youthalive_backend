@@ -86,4 +86,5 @@ ticketSchema.pre('save', function(next) {
 // Create and export the Ticket model
 const Ticket: Model<ITicket> = model<ITicket>('Ticket', ticketSchema);
 
-export default Ticket;
+// Export the model and interface
+export { Ticket };

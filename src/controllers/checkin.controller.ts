@@ -1,5 +1,5 @@
 import { Request, Response } from 'express';
-import Ticket from '../models/ticket.model';
+import { Ticket, ITicket } from '../models/ticket.model';
 import logger from '../utils/logger';
 import { Types } from 'mongoose';
 
@@ -37,13 +37,11 @@ export const searchGuests = async (req: Request, res: Response): Promise<void> =
     // Find tickets matching criteria
     const tickets = await Ticket.find(searchCriteria)
       .sort({ name: 1 })
-      .limit(50); // Limit results to prevent large queries
-
-    // Return results
+      .limit(50); // Limit results to prevent large queries    // Return results
     res.status(200).json({
       success: true,
       count: tickets.length,
-      data: tickets.map(ticket => ({
+      data: tickets.map((ticket: ITicket) => ({
         id: ticket._id,
         invoiceNo: ticket.invoiceNo,
         name: ticket.name,

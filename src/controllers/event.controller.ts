@@ -1,10 +1,10 @@
 import { Request, Response } from 'express';
 import { getLiveEvents, parseWebhook } from '../services/jotform.service';
 import { generateQrCode } from '../services/qr.service';
-import { sendTicketEmail } from '../services/email.service';
-import Event from '../models/event.model';
-import User from '../models/user.model';
-import Ticket from '../models/ticket.model';
+import { emailService } from '../services/email.service';
+import { Event } from '../models/event.model';
+import { User } from '../models/user.model';
+import { Ticket } from '../models/ticket.model';
 import logger from '../utils/logger';
 
 /**
@@ -98,8 +98,7 @@ export const webhookHandler = async (req: Request, res: Response): Promise<void>
 
     // Check if ticket already exists
     let ticket = await Ticket.findOne({ invoiceNo: submissionData.invoiceNo });
-    if (!ticket) {
-      // Create a new ticket
+    if (!ticket) {      // Create a new ticket
       ticket = new Ticket({
         invoiceNo: submissionData.invoiceNo,
         user: user._id,
@@ -110,20 +109,18 @@ export const webhookHandler = async (req: Request, res: Response): Promise<void>
         church: submissionData.church,
         youthMinistry: submissionData.youthMinistry,
       });
-      await ticket.save();
-
-      // Generate QR code
+      await ticket.save();      // Generate QR code
       const qrDataUrl = await generateQrCode(submissionData.invoiceNo);
 
       // Send confirmation email with QR code
-      await sendTicketEmail(
-        submissionData.email,
-        submissionData.name,
-        submissionData.invoiceNo,
-        event.title,
-        submissionData.eventDate || event.startTime.toLocaleDateString(),
-        qrDataUrl
-      );
+      await emailService.sendTicketEmail({
+        to: submissionData.email,
+        name: submissionData.name,
+        eventTitle: event.title,
+        eventDate: submissionData.eventDate || event.startTime.toLocaleDateString(),
+        invoiceNo: submissionData.invoiceNo,
+        qrDataUrl: qrDataUrl
+      });
     }
 
     // Return success response

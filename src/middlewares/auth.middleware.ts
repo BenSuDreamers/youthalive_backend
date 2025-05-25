@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { verifyToken, JwtPayload } from '../services/auth.service';
-import User from '../models/user.model';
+import { User } from '../models/user.model';
 import logger from '../utils/logger';
 import mongoose from 'mongoose';
 
@@ -11,7 +11,6 @@ declare global {
       user?: {
         id: string;
         email: string;
-        name?: string;
       };
     }
   }
@@ -61,11 +60,10 @@ export const authenticateJWT = async (
         message: 'User not found',
       });
       return;
-    }      // Add user to request object
+    }    // Add user to request object
     req.user = {
       id: String(user._id),
-      email: user.email,
-      name: user.name,
+      email: user.email
     };
     
     // Continue to the next middleware

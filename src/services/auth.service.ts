@@ -1,5 +1,5 @@
 import bcrypt from 'bcryptjs';
-import jwt, { Secret, SignOptions } from 'jsonwebtoken';
+import jwt, { SignOptions } from 'jsonwebtoken';
 import config from '../config';
 import logger from '../utils/logger';
 
@@ -33,37 +33,35 @@ export const comparePassword = async (
   try {
     return await bcrypt.compare(plainPassword, hash);
   } catch (error) {
-    logger.error('Error comparing passwords', { error });
+    logger.error('Error comparing password', { error });
     throw new Error('Password comparison failed');
   }
 };
 
 /**
- * Generate a JWT token for authentication
+ * Generate a JWT token
  */
-export const generateToken = (payload: JwtPayload): string => {
-  try {    // Need to use Buffer.from to convert to a format jwt.sign accepts
-    const secret = Buffer.from(config.jwt.secret, 'utf8');    const options: SignOptions = {
-      expiresIn: '1d' // Fixed to 1 day
-    };
+export const generateToken = (payload: { userId: string }): string => {  try {
+    const options: SignOptions = {
+      expiresIn: config.jwt.expiresIn 
+    } as SignOptions;
     
-    return jwt.sign(payload, secret, options);
+    return jwt.sign(payload, config.jwt.secret, options);
   } catch (error) {
-    logger.error('Error generating JWT token', { error });
+    logger.error('Error generating token', { error });
     throw new Error('Token generation failed');
   }
 };
 
 /**
- * Verify and decode a JWT token
+ * Verify a JWT token
  */
 export const verifyToken = (token: string): JwtPayload => {
   try {
-    const secret = Buffer.from(config.jwt.secret, 'utf8');
-    const decoded = jwt.verify(token, secret);
-    return decoded as JwtPayload;
+    const decoded = jwt.verify(token, config.jwt.secret) as JwtPayload;
+    return decoded;
   } catch (error) {
-    logger.error('Invalid token', { error });
-    throw new Error('Invalid token');
+    logger.error('Error verifying token', { error });
+    throw new Error('Token verification failed');
   }
 };

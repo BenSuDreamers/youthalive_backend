@@ -13,193 +13,226 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.resetPassword = exports.forgotPassword = exports.login = exports.register = void 0;
+const user_model_1 = require("../models/user.model");
 const auth_service_1 = require("../services/auth.service");
-const user_model_1 = __importDefault(require("../models/user.model"));
+const email_service_1 = require("../services/email.service");
 const config_1 = __importDefault(require("../config"));
 const logger_1 = __importDefault(require("../utils/logger"));
-const crypto_1 = __importDefault(require("crypto"));
 /**
  * Register a new user
- * @route POST /api/auth/register
  */
 const register = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { email, password, name, registrationSecret } = req.body;
-        // Validate required fields
-        if (!email || !password) {
-            res.status(400).json({ success: false, message: 'Email and password are required' });
+        const { email, password, registrationSecret } = req.body;
+        // Validate input
+        if (!email || !password || !registrationSecret) {
+            res.status(400).json({
+                success: false,
+                message: 'Email, password, and registration secret are required'
+            });
             return;
         }
-        // Validate registration secret
+        // Verify registration secret
         if (registrationSecret !== config_1.default.registrationSecret) {
-            res.status(403).json({ success: false, message: 'Invalid registration secret' });
+            res.status(403).json({
+                success: false,
+                message: 'Invalid registration secret'
+            });
             return;
         }
         // Check if user already exists
-        const existingUser = yield user_model_1.default.findOne({ email });
+        const existingUser = yield user_model_1.User.findOne({ email });
         if (existingUser) {
-            res.status(409).json({ success: false, message: 'Email is already registered' });
+            res.status(409).json({
+                success: false,
+                message: 'User already exists'
+            });
             return;
         }
         // Hash password and create user
         const passwordHash = yield (0, auth_service_1.hashPassword)(password);
-        const newUser = new user_model_1.default({
+        const newUser = new user_model_1.User({
             email,
             passwordHash,
-            name,
-        }); // Save user to database
+            createdAt: new Date()
+        });
         yield newUser.save();
-        // Generate token for the new user
-        const token = (0, auth_service_1.generateToken)({ userId: String(newUser._id) });
-        // Return success response with token
+        // Generate JWT token
+        const token = (0, auth_service_1.generateToken)({ userId: newUser._id.toString() });
         res.status(201).json({
             success: true,
             message: 'User registered successfully',
             token,
             user: {
-                id: newUser._id.toString(),
+                id: newUser._id,
                 email: newUser.email,
-                name: newUser.name,
-            },
+                createdAt: newUser.createdAt
+            }
         });
     }
     catch (error) {
         logger_1.default.error('Registration error', { error });
-        res.status(500).json({ success: false, message: 'Error registering user' });
+        res.status(500).json({
+            success: false,
+            message: 'Registration failed'
+        });
     }
 });
 exports.register = register;
 /**
- * Login a user
- * @route POST /api/auth/login
+ * Login user
  */
 const login = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email, password } = req.body;
-        // Validate required fields
+        // Validate input
         if (!email || !password) {
-            res.status(400).json({ success: false, message: 'Email and password are required' });
+            res.status(400).json({
+                success: false,
+                message: 'Email and password are required'
+            });
             return;
         }
-        // Find user by email
-        const user = yield user_model_1.default.findOne({ email });
+        // Find user
+        const user = yield user_model_1.User.findOne({ email });
         if (!user) {
-            res.status(401).json({ success: false, message: 'Invalid email or password' });
+            res.status(401).json({
+                success: false,
+                message: 'Invalid credentials'
+            });
             return;
         }
         // Verify password
         const isPasswordValid = yield (0, auth_service_1.comparePassword)(password, user.passwordHash);
         if (!isPasswordValid) {
-            res.status(401).json({ success: false, message: 'Invalid email or password' });
+            res.status(401).json({
+                success: false,
+                message: 'Invalid credentials'
+            });
             return;
         }
-        // Generate token
-        const token = (0, auth_service_1.generateToken)({ userId: String(user._id) });
-        // Return success response with token
+        // Generate JWT token
+        const token = (0, auth_service_1.generateToken)({ userId: user._id.toString() });
         res.status(200).json({
             success: true,
             message: 'Login successful',
             token,
             user: {
-                id: user._id.toString(),
+                id: user._id,
                 email: user.email,
-                name: user.name,
-            },
+                createdAt: user.createdAt
+            }
         });
     }
     catch (error) {
         logger_1.default.error('Login error', { error });
-        res.status(500).json({ success: false, message: 'Error during login' });
+        res.status(500).json({
+            success: false,
+            message: 'Login failed'
+        });
     }
 });
 exports.login = login;
 /**
- * Request password reset
- * @route POST /api/auth/forgot-password
+ * Send password reset email
  */
 const forgotPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { email } = req.body;
-        // Validate email
         if (!email) {
-            res.status(400).json({ success: false, message: 'Email is required' });
+            res.status(400).json({
+                success: false,
+                message: 'Email is required'
+            });
             return;
         }
-        // Find user by email
-        const user = yield user_model_1.default.findOne({ email });
+        // Find user
+        const user = yield user_model_1.User.findOne({ email });
         if (!user) {
-            // For security reasons, don't reveal if email exists or not
+            // Don't reveal if user exists or not
             res.status(200).json({
                 success: true,
-                message: 'If a matching account was found, a password reset link has been sent',
+                message: 'If the email exists, a password reset link has been sent'
             });
             return;
         }
         // Generate reset token (valid for 1 hour)
-        const resetToken = crypto_1.default.randomBytes(32).toString('hex');
+        const resetToken = (0, auth_service_1.generateToken)({ userId: user._id.toString() });
+        // Save reset token to user (optional, for additional security)
         user.resetPasswordToken = resetToken;
         user.resetPasswordExpires = new Date(Date.now() + 3600000); // 1 hour
         yield user.save();
-        // Create reset URL
-        const resetUrl = `${config_1.default.frontendUrl}/reset-password/${resetToken}`;
-        // Send password reset email
-        // This example uses a simplified email, you'd want to use your email service
-        /*
-        await sendPasswordResetEmail(
-          user.email,
-          user.name || 'User',
-          resetUrl
-        );
-        */
-        // Log the reset URL for development (remove in production)
-        logger_1.default.debug('Password reset link', { resetUrl, email });
-        // Return success response
+        // Send reset email
+        const resetUrl = `${config_1.default.frontendUrl}/reset-password?token=${resetToken}`;
+        try {
+            yield email_service_1.emailService.sendPasswordResetEmail(user.email, resetUrl);
+            logger_1.default.info('Password reset email sent', { email: user.email });
+        }
+        catch (emailError) {
+            logger_1.default.error('Failed to send reset email', { error: emailError });
+            // Don't fail the request if email fails
+        }
         res.status(200).json({
             success: true,
-            message: 'If a matching account was found, a password reset link has been sent',
+            message: 'If the email exists, a password reset link has been sent'
         });
     }
     catch (error) {
-        logger_1.default.error('Password reset request error', { error });
-        res.status(500).json({ success: false, message: 'Error processing password reset request' });
+        logger_1.default.error('Forgot password error', { error });
+        res.status(500).json({
+            success: false,
+            message: 'Password reset request failed'
+        });
     }
 });
 exports.forgotPassword = forgotPassword;
 /**
  * Reset password with token
- * @route POST /api/auth/reset-password
  */
 const resetPassword = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         const { token, newPassword } = req.body;
-        // Validate required fields
         if (!token || !newPassword) {
-            res.status(400).json({ success: false, message: 'Token and new password are required' });
+            res.status(400).json({
+                success: false,
+                message: 'Token and new password are required'
+            });
             return;
         }
-        // Find user by reset token and check expiration
-        const user = yield user_model_1.default.findOne({
-            resetPasswordToken: token,
-            resetPasswordExpires: { $gt: Date.now() },
-        });
+        // Verify the reset token
+        const decoded = (0, auth_service_1.verifyToken)(token);
+        // Find user and check if reset token is still valid
+        const user = yield user_model_1.User.findById(decoded.userId);
         if (!user) {
-            res.status(400).json({ success: false, message: 'Password reset token is invalid or has expired' });
+            res.status(404).json({ success: false, message: 'User not found' });
             return;
         }
-        // Update password
+        // Check if token matches and hasn't expired
+        if (user.resetPasswordToken !== token ||
+            !user.resetPasswordExpires ||
+            user.resetPasswordExpires < new Date()) {
+            res.status(400).json({
+                success: false,
+                message: 'Invalid or expired reset token'
+            });
+            return;
+        }
+        // Hash new password and save
         user.passwordHash = yield (0, auth_service_1.hashPassword)(newPassword);
         user.resetPasswordToken = undefined;
         user.resetPasswordExpires = undefined;
         yield user.save();
-        // Return success response
         res.status(200).json({
             success: true,
-            message: 'Password has been reset successfully',
+            message: 'Password reset successful'
         });
     }
     catch (error) {
         logger_1.default.error('Password reset error', { error });
-        res.status(500).json({ success: false, message: 'Error resetting password' });
+        res.status(400).json({
+            success: false,
+            message: 'Invalid or expired token'
+        });
     }
 });
 exports.resetPassword = resetPassword;

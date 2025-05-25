@@ -13,7 +13,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.checkIn = exports.searchGuests = void 0;
-const ticket_model_1 = __importDefault(require("../models/ticket.model"));
+const ticket_model_1 = require("../models/ticket.model");
 const logger_1 = __importDefault(require("../utils/logger"));
 const mongoose_1 = require("mongoose");
 /**
@@ -44,14 +44,13 @@ const searchGuests = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             ];
         }
         // Find tickets matching criteria
-        const tickets = yield ticket_model_1.default.find(searchCriteria)
+        const tickets = yield ticket_model_1.Ticket.find(searchCriteria)
             .sort({ name: 1 })
-            .limit(50); // Limit results to prevent large queries
-        // Return results
+            .limit(50); // Limit results to prevent large queries    // Return results
         res.status(200).json({
             success: true,
             count: tickets.length,
-            data: tickets.map(ticket => ({
+            data: tickets.map((ticket) => ({
                 id: ticket._id,
                 invoiceNo: ticket.invoiceNo,
                 name: ticket.name,
@@ -96,10 +95,10 @@ const checkIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 });
                 return;
             }
-            ticket = yield ticket_model_1.default.findById(ticketId);
+            ticket = yield ticket_model_1.Ticket.findById(ticketId);
         }
         else {
-            ticket = yield ticket_model_1.default.findOne({ invoiceNo });
+            ticket = yield ticket_model_1.Ticket.findOne({ invoiceNo });
         }
         // Check if ticket exists
         if (!ticket) {

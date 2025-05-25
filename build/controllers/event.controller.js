@@ -16,9 +16,9 @@ exports.webhookHandler = exports.listEvents = void 0;
 const jotform_service_1 = require("../services/jotform.service");
 const qr_service_1 = require("../services/qr.service");
 const email_service_1 = require("../services/email.service");
-const event_model_1 = __importDefault(require("../models/event.model"));
-const user_model_1 = __importDefault(require("../models/user.model"));
-const ticket_model_1 = __importDefault(require("../models/ticket.model"));
+const event_model_1 = require("../models/event.model");
+const user_model_1 = require("../models/user.model");
+const ticket_model_1 = require("../models/ticket.model");
 const logger_1 = __importDefault(require("../utils/logger"));
 /**
  * Get all live events
@@ -30,7 +30,7 @@ const listEvents = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
         const jotformEvents = yield (0, jotform_service_1.getLiveEvents)();
         // Ensure all events exist in our database
         for (const jotformEvent of jotformEvents) {
-            yield event_model_1.default.findOneAndUpdate({ formId: jotformEvent.formId }, {
+            yield event_model_1.Event.findOneAndUpdate({ formId: jotformEvent.formId }, {
                 formId: jotformEvent.formId,
                 title: jotformEvent.title,
                 startTime: jotformEvent.startTime,
@@ -38,7 +38,7 @@ const listEvents = (req, res) => __awaiter(void 0, void 0, void 0, function* () 
             }, { upsert: true, new: true });
         }
         // Get events from our database (with additional fields if needed)
-        const events = yield event_model_1.default.find({ formId: { $in: jotformEvents.map(e => e.formId) } }).sort({ startTime: 1 });
+        const events = yield event_model_1.Event.find({ formId: { $in: jotformEvents.map(e => e.formId) } }).sort({ startTime: 1 });
         // Return events
         res.status(200).json({
             success: true,
@@ -73,10 +73,10 @@ const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function*
             return;
         }
         // Find or create the event
-        let event = yield event_model_1.default.findOne({ formId: submissionData.formId });
+        let event = yield event_model_1.Event.findOne({ formId: submissionData.formId });
         if (!event) {
             // Create a new event if it doesn't exist
-            event = new event_model_1.default({
+            event = new event_model_1.Event({
                 formId: submissionData.formId,
                 title: submissionData.eventName || 'Youth Alive Event',
                 startTime: new Date(), // Default values
@@ -85,11 +85,11 @@ const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function*
             yield event.save();
         }
         // Find or create the user
-        let user = yield user_model_1.default.findOne({ email: submissionData.email });
+        let user = yield user_model_1.User.findOne({ email: submissionData.email });
         if (!user) {
             // Create a user with a random password (they can use password reset to set their own)
             const tempPassword = Math.random().toString(36).slice(-8);
-            user = new user_model_1.default({
+            user = new user_model_1.User({
                 email: submissionData.email,
                 name: submissionData.name,
                 passwordHash: 'temporary', // This should be properly hashed in production
@@ -97,10 +97,9 @@ const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function*
             yield user.save();
         }
         // Check if ticket already exists
-        let ticket = yield ticket_model_1.default.findOne({ invoiceNo: submissionData.invoiceNo });
-        if (!ticket) {
-            // Create a new ticket
-            ticket = new ticket_model_1.default({
+        let ticket = yield ticket_model_1.Ticket.findOne({ invoiceNo: submissionData.invoiceNo });
+        if (!ticket) { // Create a new ticket
+            ticket = new ticket_model_1.Ticket({
                 invoiceNo: submissionData.invoiceNo,
                 user: user._id,
                 event: event._id,
@@ -110,11 +109,17 @@ const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 church: submissionData.church,
                 youthMinistry: submissionData.youthMinistry,
             });
-            yield ticket.save();
-            // Generate QR code
+            yield ticket.save(); // Generate QR code
             const qrDataUrl = yield (0, qr_service_1.generateQrCode)(submissionData.invoiceNo);
             // Send confirmation email with QR code
-            yield (0, email_service_1.sendTicketEmail)(submissionData.email, submissionData.name, submissionData.invoiceNo, event.title, submissionData.eventDate || event.startTime.toLocaleDateString(), qrDataUrl);
+            yield email_service_1.emailService.sendTicketEmail({
+                to: submissionData.email,
+                name: submissionData.name,
+                eventTitle: event.title,
+                eventDate: submissionData.eventDate || event.startTime.toLocaleDateString(),
+                invoiceNo: submissionData.invoiceNo,
+                qrDataUrl: qrDataUrl
+            });
         }
         // Return success response
         res.status(200).json({

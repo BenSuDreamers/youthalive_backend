@@ -49,4 +49,5 @@ eventSchema.pre('save', function(next) {
 // Create and export the Event model
 const Event: Model<IEvent> = model<IEvent>('Event', eventSchema);
 
-export default Event;
+// Export the model and interface
+export { Event };

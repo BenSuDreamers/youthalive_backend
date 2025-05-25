@@ -3,11 +3,7 @@ import { webhookHandler } from '../controllers/event.controller';
 
 const router = express.Router();
 
-/**
- * @route POST /api/webhooks
- * @desc Process webhooks from Jotform
- * @access Public
- */
-router.post('/', webhookHandler);
+// Jotform webhook endpoint (no auth required)
+router.post('/jotform', webhookHandler);
 
 export default router;

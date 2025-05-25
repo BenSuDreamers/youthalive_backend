@@ -12,27 +12,26 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.generateQrCodeBuffer = exports.generateQrCode = void 0;
+exports.generateQrCode = void 0;
 const qrcode_1 = __importDefault(require("qrcode"));
 const logger_1 = __importDefault(require("../utils/logger"));
 /**
- * Generate a QR code as a data URL
- * @param data The string to encode in the QR code
- * @returns Promise resolving to a data URL string
+ * Generate QR code as data URL
  */
 const generateQrCode = (data) => __awaiter(void 0, void 0, void 0, function* () {
-    try { // Generate QR code with specific options
+    try {
         const qrOptions = {
-            errorCorrectionLevel: 'H', // Highest error correction capability
-            margin: 1,
-            width: 500,
+            errorCorrectionLevel: 'M',
+            type: 'image/png',
+            width: 300,
+            margin: 2,
             color: {
-                dark: '#000000', // Black dots
-                light: '#FFFFFF' // White background
+                dark: '#000000',
+                light: '#FFFFFF'
             }
         };
-        // Generate and return the QR code as a data URL
         const dataUrl = yield qrcode_1.default.toDataURL(data, qrOptions);
+        logger_1.default.info('QR code generated successfully', { dataLength: data.length });
         return dataUrl;
     }
     catch (error) {
@@ -41,24 +40,4 @@ const generateQrCode = (data) => __awaiter(void 0, void 0, void 0, function* () 
     }
 });
 exports.generateQrCode = generateQrCode;
-/**
- * Generate a QR code as a buffer
- * @param data The string to encode
- * @returns Promise resolving to a Buffer
- */
-const generateQrCodeBuffer = (data) => __awaiter(void 0, void 0, void 0, function* () {
-    try {
-        const buffer = yield qrcode_1.default.toBuffer(data, {
-            errorCorrectionLevel: 'H',
-            width: 500,
-            margin: 1,
-        });
-        return buffer;
-    }
-    catch (error) {
-        logger_1.default.error('Error generating QR code buffer', { error, data });
-        throw new Error('QR code buffer generation failed');
-    }
-});
-exports.generateQrCodeBuffer = generateQrCodeBuffer;
 //# sourceMappingURL=qr.service.js.map
