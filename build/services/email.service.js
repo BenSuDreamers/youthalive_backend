@@ -77,128 +77,122 @@ class EmailService {
      */
     generateTicketEmailHtml(ticketData) {
         return `
-<div style="display: none; font-size: 1px; color: #ffffff; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">By choosing to follow Jesus, you really have made the best decision ever!</div>
-<div style="background-color: #555555;"><!-- [if mso | IE]><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
-<div style="margin: 0px auto; max-width: 600px;">
-<table style="width: 100%;" border="0" cellspacing="0" cellpadding="0" align="center">
-<tbody>
-<tr>
-<td style="direction: ltr; font-size: 0px; padding: 20px 0; text-align: center;"><!-- [if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
-<div class="mj-column-per-100 mj-outlook-group-fix" style="font-size: 0px; text-align: left; direction: ltr; display: inline-block; vertical-align: top; width: 100%;">${ticketData.name}${ticketData.eventTitle}${ticketData.invoiceNo}&nbsp;</div>
-<!-- [if mso | IE]></td></tr></table><![endif]--></td>
-</tr>
-</tbody>
-</table>
-</div>
-<!-- [if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#ffffff" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
-<div style="background: #ffffff; background-color: #ffffff; margin: 0px auto; max-width: 600px;">
-<table style="background: #ffffff; background-color: #ffffff; width: 100%;" border="0" cellspacing="0" cellpadding="0" align="center">
-<tbody>
-<tr>
-<td style="direction: ltr; font-size: 0px; padding: 0px; padding-top: 10px; text-align: center;"><!-- [if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
-<div class="mj-column-per-100 mj-outlook-group-fix" style="font-size: 0px; text-align: left; direction: ltr; display: inline-block; vertical-align: top; width: 100%;">
-<table style="vertical-align: top;" border="0" width="100%" cellspacing="0" cellpadding="0">
-<tbody>
-<tr>
-<td style="font-size: 0px; padding: 10px 25px; word-break: break-word;" align="center"><img src="https://www.jotform.com/uploads/Benjamin_benjamin_SuBenjamin/form_files/youth%20alive%20logo%20purple.666a68a759d4c6.26289966.png" alt="" width="102" height="23" /></td>
-</tr>
-</tbody>
-</table>
-</div>
-<!-- [if mso | IE]></td></tr></table><![endif]--></td>
-</tr>
-</tbody>
-</table>
-</div>
-<!-- [if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#ffffff" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
-<div style="background: #ffffff; background-color: #ffffff; margin: 0px auto; max-width: 600px;">
-<table style="background: #ffffff; background-color: #ffffff; width: 100%;" border="0" cellspacing="0" cellpadding="0" align="center">
-<tbody>
-<tr>
-<td style="direction: ltr; font-size: 0px; padding: 0px 0; text-align: center;"><!-- [if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
-<div class="mj-column-per-100 mj-outlook-group-fix" style="font-size: 0px; text-align: left; direction: ltr; display: inline-block; vertical-align: top; width: 100%;">
-<table style="vertical-align: top;" border="0" width="100%" cellspacing="0" cellpadding="0">
-<tbody>
-<tr>
-<td style="background: #ffffff; font-size: 0px; padding: 10px 0 0; word-break: break-word;" align="center"><img src="https://www.jotform.com/uploads/Benjamin_benjamin_SuBenjamin/form_files/Stadium%2024%20Guest%20Speaker%20Announcement%20(Logo).66207f2f8fdde4.16960870.png" alt="" /></td>
-</tr>
-</tbody>
-</table>
-</div>
-<!-- [if mso | IE]></td></tr></table><![endif]--></td>
-</tr>
-</tbody>
-</table>
-</div>
-<!-- [if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="#ffffff" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
-<div style="background: #ffffff; background-color: #ffffff; margin: 0px auto; max-width: 600px;">
-<table style="background: #ffffff; background-color: #ffffff; width: 100%;" border="0" cellspacing="0" cellpadding="0" align="center">
-<tbody>
-<tr>
-<td style="direction: ltr; font-size: 0px; padding: 10px 0px 20px 0px; text-align: center;"><!-- [if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
-<div class="mj-column-per-100 mj-outlook-group-fix" style="font-size: 0px; text-align: left; direction: ltr; display: inline-block; vertical-align: top; width: 100%;">
-<table style="vertical-align: top;" border="0" width="100%" cellspacing="0" cellpadding="0">
-<tbody>
-<tr style="height: 426.93px;">
-<td style="font-size: 0px; padding: 10px 25px; word-break: break-word; height: 426.93px;" align="left">
-<div style="font-family: Inter, sans-serif; font-size: 14px; line-height: 1.5; text-align: left; color: #333333;">
-<p>Hi <strong>${ticketData.name.split(' ')[0]},</strong></p>
-<p>Thank you for registering for ${ticketData.eventTitle}!</p>
-<p>This is your confirmation email to acknowledge that your registration has been confirmed.</p>
-<p><strong>Date:</strong> ${ticketData.eventDate}</p>
-<p><strong>Time:</strong> 5:30pm - Sign-In <strong>//</strong> 6:30pm - Doors Open</p>
-<p><strong>Location:</strong> Adelaide Convention Centre</p>
-<p><strong>Parking is limited</strong> so we encourage you to either travel with your youth ministry, take public transport or organise which carpark you will park at to ensure you are not surprised by any parking rates.</p>
-<p><strong>Check-in:&nbsp;</strong>Alternatively to a ticket system, this year at check in, be ready with your invoice number attached below.</p>
-<p><strong>Please present this QR code when checking in:</strong></p>
-<p><img src="${ticketData.qrDataUrl}" alt="QR Code" style="width: 200px; height: 200px; border: 1px solid #ddd;"></p>
-<p>Please find attached to this email a receipt for your order.</p>
-<p>If you have any questions, you can contact us at <a href="mailto:hello@youthalivesa.org">hello@youthalivesa.org</a></p>
-<p>We look forward to seeing you at ${ticketData.eventTitle}!</p>
-</div>
-</td>
-</tr>
-</tbody>
-</table>
-${ticketData.invoiceNo}</div>
-<!-- [if mso | IE]></td></tr></table><![endif]--></td>
-</tr>
-</tbody>
-</table>
-</div>
-<!-- [if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" bgcolor="white" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
-<div style="background: white; background-color: white; margin: 0px auto; max-width: 600px;">
-<table style="background: white; background-color: white; width: 100%;" border="0" cellspacing="0" cellpadding="0" align="center">
-<tbody>
-<tr style="height: 114.93px;">
-<td style="direction: ltr; font-size: 0px; padding: 0px; text-align: center; height: 114.93px;"><!-- [if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
-<div class="mj-column-per-100 mj-outlook-group-fix" style="font-size: 0px; text-align: left; direction: ltr; display: inline-block; vertical-align: top; width: 100%;">
-<table style="vertical-align: top;" border="0" width="100%" cellspacing="0" cellpadding="0">
-<tbody>
-<tr style="height: 97.9297px;">
-<td style="font-size: 0px; padding: 0px; word-break: break-word; height: 97.9297px;" align="center"><img src="https://www.jotform.com/uploads/Benjamin_benjamin_SuBenjamin/form_files/gmal%20signature.66207f8799a219.95879816.png" alt="" width="71" height="71" /></td>
-</tr>
-</tbody>
-</table>
-</div>
-<!-- [if mso | IE]></td></tr></table><![endif]--></td>
-</tr>
-</tbody>
-</table>
-</div>
-<!-- [if mso | IE]></td></tr></table><table align="center" border="0" cellpadding="0" cellspacing="0" class="" role="presentation" style="width:600px;" width="600" ><tr><td style="line-height:0px;font-size:0px;mso-line-height-rule:exactly;"><![endif]-->
-<div style="margin: 0px auto; max-width: 600px;">
-<table style="width: 100%;" border="0" cellspacing="0" cellpadding="0" align="center">
-<tbody>
-<tr>
-<td style="direction: ltr; font-size: 0px; padding: 20px 0; text-align: center;"><!-- [if mso | IE]><table role="presentation" border="0" cellpadding="0" cellspacing="0"><tr><td class="" style="vertical-align:top;width:600px;" ><![endif]-->
-<div class="mj-column-per-100 mj-outlook-group-fix" style="font-size: 0px; text-align: left; direction: ltr; display: inline-block; vertical-align: top; width: 100%;">&nbsp;</div>
-<!-- [if mso | IE]></td></tr></table><![endif]--></td>
-</tr>
-</tbody>
-</table>
-</div>
-<!-- [if mso | IE]></td></tr></table><![endif]--></div>
+      <div style="display: none; font-size: 1px; color: #ffffff; line-height: 1px; max-height: 0px; max-width: 0px; opacity: 0; overflow: hidden;">
+        By choosing to follow Jesus, you really have made the best decision ever!
+      </div>
+      <div style="background-color: #555555;">
+        <div style="margin: 0px auto; max-width: 600px;">
+          <table style="width: 100%;" border="0" cellspacing="0" cellpadding="0" align="center">
+            <tbody>
+              <tr>
+                <td style="direction: ltr; font-size: 0px; padding: 20px 0; text-align: center;">
+                  <div style="font-size: 0px; text-align: left; direction: ltr; display: inline-block; vertical-align: top; width: 100%;">
+                    ${ticketData.name}${ticketData.eventTitle}${ticketData.invoiceNo}&nbsp;
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="background: #ffffff; background-color: #ffffff; margin: 0px auto; max-width: 600px;">
+          <table style="background: #ffffff; background-color: #ffffff; width: 100%;" border="0" cellspacing="0" cellpadding="0" align="center">
+            <tbody>
+              <tr>
+                <td style="direction: ltr; font-size: 0px; padding: 0px; padding-top: 10px; text-align: center;">
+                  <div style="font-size: 0px; text-align: left; direction: ltr; display: inline-block; vertical-align: top; width: 100%;">
+                    <table style="vertical-align: top;" border="0" width="100%" cellspacing="0" cellpadding="0">
+                      <tbody>
+                        <tr>
+                          <td style="font-size: 0px; padding: 10px 25px; word-break: break-word;" align="center">
+                            <img src="https://www.jotform.com/uploads/Benjamin_benjamin_SuBenjamin/form_files/youth%20alive%20logo%20purple.666a68a759d4c6.26289966.png" alt="" width="102" height="23" />
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="background: #ffffff; background-color: #ffffff; margin: 0px auto; max-width: 600px;">
+          <table style="background: #ffffff; background-color: #ffffff; width: 100%;" border="0" cellspacing="0" cellpadding="0" align="center">
+            <tbody>
+              <tr>
+                <td style="direction: ltr; font-size: 0px; padding: 0px 0; text-align: center;">
+                  <div style="font-size: 0px; text-align: left; direction: ltr; display: inline-block; vertical-align: top; width: 100%;">
+                    <table style="vertical-align: top;" border="0" width="100%" cellspacing="0" cellpadding="0">
+                      <tbody>
+                        <tr>
+                          <td style="background: #ffffff; font-size: 0px; padding: 10px 0 0; word-break: break-word;" align="center">
+                            <img src="https://www.jotform.com/uploads/Benjamin_benjamin_SuBenjamin/form_files/Stadium%2024%20Guest%20Speaker%20Announcement%20(Logo).66207f2f8fdde4.16960870.png" alt="" />
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="background: #ffffff; background-color: #ffffff; margin: 0px auto; max-width: 600px;">
+          <table style="background: #ffffff; background-color: #ffffff; width: 100%;" border="0" cellspacing="0" cellpadding="0" align="center">
+            <tbody>
+              <tr>
+                <td style="direction: ltr; font-size: 0px; padding: 10px 0px 20px 0px; text-align: center;">
+                  <div style="font-size: 0px; text-align: left; direction: ltr; display: inline-block; vertical-align: top; width: 100%;">
+                    <table style="vertical-align: top;" border="0" width="100%" cellspacing="0" cellpadding="0">
+                      <tbody>
+                        <tr>
+                          <td style="font-size: 0px; padding: 10px 25px; word-break: break-word;" align="left">
+                            <div style="font-family: Inter, sans-serif; font-size: 14px; line-height: 1.5; text-align: left; color: #333333;">
+                              <p>Hi <strong>${ticketData.name.split(' ')[0]},</strong></p>
+                              <p>Thank you for registering for ${ticketData.eventTitle}!</p>
+                              <p>This is your confirmation email to acknowledge that your registration has been confirmed.</p>
+                              <p><strong>Date:</strong> ${ticketData.eventDate}</p>
+                              <p><strong>Time:</strong> 5:30pm - Sign-In <strong>//</strong> 6:30pm - Doors Open</p>
+                              <p><strong>Location:</strong> Adelaide Convention Centre</p>
+                              <p><strong>Parking is limited</strong> so we encourage you to either travel with your youth ministry, take public transport or organise which carpark you will park at to ensure you are not surprised by any parking rates.</p>
+                              <p><strong>Check-in:&nbsp;</strong>Alternatively to a ticket system, this year at check in, be ready with your invoice number attached below.</p>
+                              <p><strong>Please present this QR code when checking in:</strong></p>
+                              <p><img src="${ticketData.qrDataUrl}" alt="QR Code" style="width: 200px; height: 200px; border: 1px solid #ddd;"></p>
+                              <p>Please find attached to this email a receipt for your order.</p>
+                              <p>If you have any questions, you can contact us at <a href="mailto:hello@youthalivesa.org">hello@youthalivesa.org</a></p>
+                              <p>We look forward to seeing you at ${ticketData.eventTitle}!</p>
+                            </div>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div style="background: white; background-color: white; margin: 0px auto; max-width: 600px;">
+          <table style="background: white; background-color: white; width: 100%;" border="0" cellspacing="0" cellpadding="0" align="center">
+            <tbody>
+              <tr>
+                <td style="direction: ltr; font-size: 0px; padding: 0px; text-align: center;">
+                  <div style="font-size: 0px; text-align: left; direction: ltr; display: inline-block; vertical-align: top; width: 100%;">
+                    <table style="vertical-align: top;" border="0" width="100%" cellspacing="0" cellpadding="0">
+                      <tbody>
+                        <tr>
+                          <td style="font-size: 0px; padding: 0px; word-break: break-word;" align="center">
+                            <img src="https://www.jotform.com/uploads/Benjamin_benjamin_SuBenjamin/form_files/gmal%20signature.66207f8799a219.95879816.png" alt="" width="71" height="71" />
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     `;
     }
     /**
