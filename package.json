@@ -9,7 +9,16 @@
     "watch": "tsc --watch",
     "lint": "eslint . --ext .ts",
     "clean": "rimraf build",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "heroku-postbuild": "npm run build",
+    "deploy": "git push heroku main",
+    "configure-webhooks": "node scripts/configure-webhooks.js",
+    "test-production": "node scripts/test-production.js",
+    "import-jotform": "node scripts/import-jotform-submissions.js"
+  },
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
   },
   "dependencies": {
     "@sendgrid/mail": "^8.1.5",

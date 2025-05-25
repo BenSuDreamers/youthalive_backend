@@ -111,33 +111,104 @@ exports.getLiveEvents = getLiveEvents;
 const parseWebhook = (payload) => {
     try {
         // Extract formID from the payload
-        const formId = payload.formID || '';
-        // Extract submission data from raw payload
-        // Note: Field IDs will vary based on your specific form structure
-        // You'll need to adjust these based on your actual form fields
-        const rawSubmission = payload.rawRequest || payload;
-        // These field mappings need to be adjusted based on your form structure
-        const name = getSubmissionValue(rawSubmission, 'name') || '';
-        const email = getSubmissionValue(rawSubmission, 'email') || '';
-        const invoiceNo = getSubmissionValue(rawSubmission, 'invoiceId') || `INV-${Date.now()}`;
-        const phone = getSubmissionValue(rawSubmission, 'phone');
-        const church = getSubmissionValue(rawSubmission, 'church');
-        const youthMinistry = getSubmissionValue(rawSubmission, 'youthMinistry');
-        const eventName = getSubmissionValue(rawSubmission, 'eventName') || 'Youth Alive Event';
-        const eventDate = getSubmissionValue(rawSubmission, 'eventDate') || new Date().toLocaleDateString();
+        const formId = payload.formID || payload.form_id || '';
+        // Handle different webhook payload formats
+        let submissionData = {};
+        // If rawRequest is a string, parse it
+        if (typeof payload.rawRequest === 'string') {
+            try {
+                const parsed = JSON.parse(payload.rawRequest);
+                // Check if pretty field exists (Jotform format)
+                if (parsed.pretty && typeof parsed.pretty === 'string') {
+                    submissionData = JSON.parse(parsed.pretty);
+                }
+                else {
+                    submissionData = parsed;
+                }
+            }
+            catch (e) {
+                logger_1.default.warn('Failed to parse rawRequest JSON', { rawRequest: payload.rawRequest });
+                submissionData = payload;
+            }
+        }
+        else if (payload.rawRequest && typeof payload.rawRequest === 'object') {
+            submissionData = payload.rawRequest;
+        }
+        else {
+            // Use the payload directly
+            submissionData = payload;
+        }
+        logger_1.default.info('Parsing webhook with submission data', { submissionData, formId });
+        // Map fields based on form ID (different forms have different field structures)
+        let fieldMappings = {};
+        if (formId === '251442125173852') {
+            // WebApp test form mappings
+            fieldMappings = {
+                name: '3',
+                email: '4',
+                invoiceId: '11',
+                church: '12',
+                phone: '16'
+            };
+        }
+        else if (formId === '241078261192858') {
+            // Stadium 24 form mappings
+            fieldMappings = {
+                name: '4',
+                email: '5',
+                phone: '7',
+                church: '10',
+                invoiceId: '38'
+            };
+        }
+        else {
+            // Default/Stadium Registration Form mappings
+            fieldMappings = {
+                name: '3',
+                email: '4',
+                phone: '16',
+                church: '12',
+                invoiceId: '11'
+            };
+        }
+        // Extract values using the appropriate field mappings
+        const name = submissionData[fieldMappings.name] || '';
+        const email = submissionData[fieldMappings.email] || '';
+        let invoiceNo = submissionData[fieldMappings.invoiceId] || `INV-${Date.now()}`;
+        const phone = submissionData[fieldMappings.phone] || '';
+        const church = submissionData[fieldMappings.church] || '';
+        // Clean invoice number (remove "# INV-" prefix if present)
+        if (typeof invoiceNo === 'string' && invoiceNo.startsWith('# INV-')) {
+            invoiceNo = invoiceNo.substring(6);
+        }
+        // Handle name field if it's an object (some forms return {first, last})
+        let finalName = name;
+        if (typeof name === 'object' && name !== null) {
+            if (name.first || name.last) {
+                finalName = `${name.first || ''} ${name.last || ''}`.trim();
+            }
+            else {
+                finalName = String(name);
+            }
+        }
         // Create parsed submission object
         const parsedSubmission = {
             formId,
-            name,
+            name: finalName,
             email,
             invoiceNo,
             phone,
             church,
-            youthMinistry,
-            eventName,
-            eventDate,
+            eventName: 'Youth Alive Event',
+            eventDate: new Date().toLocaleDateString(),
         };
-        logger_1.default.info('Webhook data parsed successfully', { formId, email, invoiceNo });
+        logger_1.default.info('Webhook data parsed successfully', {
+            formId,
+            email,
+            invoiceNo,
+            name: finalName,
+            extractedFrom: Object.keys(submissionData)
+        });
         return parsedSubmission;
     }
     catch (error) {
