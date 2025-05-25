@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import bcrypt from 'bcrypt';
 import { getLiveEvents, parseWebhook } from '../services/jotform.service';
 import { generateQrCode } from '../services/qr.service';
 import { emailService } from '../services/email.service';
@@ -14,17 +15,24 @@ import logger from '../utils/logger';
 export const listEvents = async (req: Request, res: Response): Promise<void> => {
   try {
     // Get events from Jotform API
-    const jotformEvents = await getLiveEvents();
-
-    // Ensure all events exist in our database
+    const jotformEvents = await getLiveEvents();    // Ensure all events exist in our database
     for (const jotformEvent of jotformEvents) {
+      // Additional validation before saving to database
+      const startTime = jotformEvent.startTime && !isNaN(jotformEvent.startTime.getTime()) 
+        ? jotformEvent.startTime 
+        : new Date();
+      
+      const endTime = jotformEvent.endTime && !isNaN(jotformEvent.endTime.getTime()) 
+        ? jotformEvent.endTime 
+        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+
       await Event.findOneAndUpdate(
         { formId: jotformEvent.formId },
         {
           formId: jotformEvent.formId,
           title: jotformEvent.title,
-          startTime: jotformEvent.startTime,
-          endTime: jotformEvent.endTime,
+          startTime,
+          endTime,
         },
         { upsert: true, new: true }
       );
@@ -60,12 +68,23 @@ export const webhookHandler = async (req: Request, res: Response): Promise<void>
 
     // Parse the webhook data
     const submissionData = parseWebhook(req.body);
+    logger.info('Parsed submission data', { submissionData });
     
     // Validate required fields
     if (!submissionData.email || !submissionData.formId || !submissionData.invoiceNo) {
+      logger.warn('Missing required fields', { 
+        email: submissionData.email,
+        formId: submissionData.formId, 
+        invoiceNo: submissionData.invoiceNo 
+      });
       res.status(400).json({
         success: false,
         message: 'Invalid webhook data: missing required fields',
+        received: { 
+          email: submissionData.email,
+          formId: submissionData.formId, 
+          invoiceNo: submissionData.invoiceNo 
+        }
       });
       return;
     }
@@ -81,19 +100,25 @@ export const webhookHandler = async (req: Request, res: Response): Promise<void>
         endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),  // 7 days from now
       });
       await event.save();
-    }
-
-    // Find or create the user
+    }    // Find or create the user
     let user = await User.findOne({ email: submissionData.email });
     if (!user) {
       // Create a user with a random password (they can use password reset to set their own)
+      const bcrypt = require('bcrypt');
       const tempPassword = Math.random().toString(36).slice(-8);
+      const saltRounds = 10;
+      const hashedPassword = await bcrypt.hash(tempPassword, saltRounds);
+      
       user = new User({
         email: submissionData.email,
-        name: submissionData.name,
-        passwordHash: 'temporary', // This should be properly hashed in production
+        passwordHash: hashedPassword,
       });
       await user.save();
+      
+      logger.info('Created new user for ticket', { 
+        email: submissionData.email, 
+        tempPassword: tempPassword // Log temp password for debugging (remove in production)
+      });
     }
 
     // Check if ticket already exists

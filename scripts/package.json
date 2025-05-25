@@ -1,0 +1,14 @@
+{
+  "name": "jotform-webhook-setup",
+  "version": "1.0.0",
+  "description": "Setup script for Jotform webhooks",
+  "main": "setup-jotform-webhook.js",
+  "scripts": {
+    "setup": "node setup-jotform-webhook.js",
+    "test": "node test-webhook.js"
+  },
+  "dependencies": {
+    "axios": "^1.6.0",
+    "dotenv": "^16.3.0"
+  }
+}

@@ -27,14 +27,20 @@ const logger_1 = __importDefault(require("../utils/logger"));
 const listEvents = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
         // Get events from Jotform API
-        const jotformEvents = yield (0, jotform_service_1.getLiveEvents)();
-        // Ensure all events exist in our database
+        const jotformEvents = yield (0, jotform_service_1.getLiveEvents)(); // Ensure all events exist in our database
         for (const jotformEvent of jotformEvents) {
+            // Additional validation before saving to database
+            const startTime = jotformEvent.startTime && !isNaN(jotformEvent.startTime.getTime())
+                ? jotformEvent.startTime
+                : new Date();
+            const endTime = jotformEvent.endTime && !isNaN(jotformEvent.endTime.getTime())
+                ? jotformEvent.endTime
+                : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
             yield event_model_1.Event.findOneAndUpdate({ formId: jotformEvent.formId }, {
                 formId: jotformEvent.formId,
                 title: jotformEvent.title,
-                startTime: jotformEvent.startTime,
-                endTime: jotformEvent.endTime,
+                startTime,
+                endTime,
             }, { upsert: true, new: true });
         }
         // Get events from our database (with additional fields if needed)
@@ -64,11 +70,22 @@ const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function*
         logger_1.default.info('Received webhook payload', { body: req.body });
         // Parse the webhook data
         const submissionData = (0, jotform_service_1.parseWebhook)(req.body);
+        logger_1.default.info('Parsed submission data', { submissionData });
         // Validate required fields
         if (!submissionData.email || !submissionData.formId || !submissionData.invoiceNo) {
+            logger_1.default.warn('Missing required fields', {
+                email: submissionData.email,
+                formId: submissionData.formId,
+                invoiceNo: submissionData.invoiceNo
+            });
             res.status(400).json({
                 success: false,
                 message: 'Invalid webhook data: missing required fields',
+                received: {
+                    email: submissionData.email,
+                    formId: submissionData.formId,
+                    invoiceNo: submissionData.invoiceNo
+                }
             });
             return;
         }
@@ -83,18 +100,23 @@ const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 endTime: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
             });
             yield event.save();
-        }
-        // Find or create the user
+        } // Find or create the user
         let user = yield user_model_1.User.findOne({ email: submissionData.email });
         if (!user) {
             // Create a user with a random password (they can use password reset to set their own)
+            const bcrypt = require('bcrypt');
             const tempPassword = Math.random().toString(36).slice(-8);
+            const saltRounds = 10;
+            const hashedPassword = yield bcrypt.hash(tempPassword, saltRounds);
             user = new user_model_1.User({
                 email: submissionData.email,
-                name: submissionData.name,
-                passwordHash: 'temporary', // This should be properly hashed in production
+                passwordHash: hashedPassword,
             });
             yield user.save();
+            logger_1.default.info('Created new user for ticket', {
+                email: submissionData.email,
+                tempPassword: tempPassword // Log temp password for debugging (remove in production)
+            });
         }
         // Check if ticket already exists
         let ticket = yield ticket_model_1.Ticket.findOne({ invoiceNo: submissionData.invoiceNo });
