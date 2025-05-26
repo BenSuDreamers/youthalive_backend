@@ -40,12 +40,14 @@ export const searchGuests = async (req: Request, res: Response): Promise<void> =
       .limit(50); // Limit results to prevent large queries    // Return results
     res.status(200).json({
       success: true,
-      count: tickets.length,
-      data: tickets.map((ticket: ITicket) => ({
+      count: tickets.length,      data: tickets.map((ticket: ITicket) => ({
         id: ticket._id,
         invoiceNo: ticket.invoiceNo,
         name: ticket.name,
         email: ticket.email,
+        quantity: ticket.quantity,
+        productDetails: ticket.productDetails,
+        totalAmount: ticket.totalAmount,
         checkedIn: ticket.checkedIn,
         checkInTime: ticket.checkInTime,
       })),
@@ -124,9 +126,7 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
     // Update check-in status
     ticket.checkedIn = true;
     ticket.checkInTime = new Date();
-    await ticket.save();
-
-    // Return updated ticket
+    await ticket.save();    // Return updated ticket
     res.status(200).json({
       success: true,
       message: `Welcome ${ticket.name}! Check-in successful.`,
@@ -135,6 +135,9 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
         invoiceNo: ticket.invoiceNo,
         name: ticket.name,
         email: ticket.email,
+        quantity: ticket.quantity,
+        productDetails: ticket.productDetails,
+        totalAmount: ticket.totalAmount,
         checkedIn: ticket.checkedIn,
         checkInTime: ticket.checkInTime,
       },
@@ -191,13 +194,15 @@ export const lookupTicket = async (req: Request, res: Response): Promise<void> =
     res.status(200).json({
       success: true,
       message: 'Ticket found',
-      data: {
-        id: ticket._id,
+      data: {        id: ticket._id,
         invoiceNo: ticket.invoiceNo,
         name: ticket.name,
         email: ticket.email,
         phone: ticket.phone,
         church: ticket.church,
+        quantity: ticket.quantity,
+        productDetails: ticket.productDetails,
+        totalAmount: ticket.totalAmount,
         checkedIn: ticket.checkedIn,
         checkInTime: ticket.checkInTime,
         event: ticket.event,

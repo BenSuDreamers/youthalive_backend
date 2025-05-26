@@ -130,11 +130,9 @@ export const webhookHandler = async (req: Request, res: Response): Promise<void>
         email: submissionData.email, 
         tempPassword: tempPassword // Log temp password for debugging (remove in production)
       });
-    }
-
-    // Check if ticket already exists
+    }    // Check if ticket already exists
     let ticket = await Ticket.findOne({ invoiceNo: submissionData.invoiceNo });
-    if (!ticket) {      // Create a new ticket
+    if (!ticket) {      // Create a new ticket      
       ticket = new Ticket({
         invoiceNo: submissionData.invoiceNo,
         user: user._id,
@@ -144,6 +142,9 @@ export const webhookHandler = async (req: Request, res: Response): Promise<void>
         phone: submissionData.phone,
         church: submissionData.church,
         youthMinistry: submissionData.youthMinistry,
+        quantity: submissionData.quantity || 1,
+        productDetails: submissionData.productDetails,
+        totalAmount: submissionData.totalAmount
       });
       await ticket.save();      // Generate QR code
       const qrDataUrl = await generateQrCode(submissionData.invoiceNo);

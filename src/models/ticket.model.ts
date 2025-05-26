@@ -13,6 +13,9 @@ export interface ITicket extends Document {
   phone?: string;
   church?: string;
   youthMinistry?: string;
+  quantity?: number;
+  productDetails?: string;
+  totalAmount?: number;
   checkInTime?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -56,10 +59,22 @@ const ticketSchema = new Schema<ITicket>({
   church: {
     type: String,
     trim: true,
-  },
-  youthMinistry: {
+  },  youthMinistry: {
     type: String,
     trim: true,
+  },
+  quantity: {
+    type: Number,
+    min: 1,
+    default: 1,
+  },
+  productDetails: {
+    type: String,
+    trim: true,
+  },
+  totalAmount: {
+    type: Number,
+    min: 0,
   },
   checkInTime: {
     type: Date,
