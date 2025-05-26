@@ -1,32 +1,90 @@
 const nodemailer = require('nodemailer');
 const QRCode = require('qrcode');
+const dotenv = require('dotenv');
+const path = require('path');
+
+// Load environment variables
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 async function testGmailSMTP() {
   try {
     console.log('🧪 Testing Gmail SMTP configuration...');
     
-    // These will be replaced with your actual Gmail credentials
-    const gmailUser = process.env.GMAIL_USER || 'your-gmail-address@gmail.com';
-    const gmailPassword = process.env.GMAIL_PASSWORD || 'your-gmail-app-password';
-    const fromEmail = process.env.FROM_EMAIL || gmailUser;
+    // Get credentials from environment
+    const gmailUser = process.env.GMAIL_USER;
+    const gmailPassword = process.env.GMAIL_PASSWORD;
+    const fromEmail = process.env.FROM_EMAIL;
     const fromName = process.env.FROM_NAME || 'Youth Alive SA';
     
     console.log(`📧 Using Gmail user: ${gmailUser}`);
     console.log(`📧 From email: ${fromEmail}`);
+    console.log(`📧 Password length: ${gmailPassword ? gmailPassword.length : 'Not set'} characters`);
     
-    // Create transporter
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: {
-        user: gmailUser,
-        pass: gmailPassword,
+    if (!gmailUser || !gmailPassword) {
+      throw new Error('Gmail credentials not found in environment variables');
+    }    // Create transporter for Google Workspace (try multiple configurations)
+    console.log('🔧 Trying multiple SMTP configurations...');
+    
+    const configs = [
+      {
+        name: 'Google Workspace SMTP',
+        config: {
+          host: 'smtp.gmail.com',
+          port: 587,
+          secure: false,
+          auth: {
+            user: gmailUser,
+            pass: gmailPassword,
+          },
+          tls: {
+            rejectUnauthorized: false
+          }
+        }
       },
-    });
+      {
+        name: 'Gmail Service',
+        config: {
+          service: 'gmail',
+          auth: {
+            user: gmailUser,
+            pass: gmailPassword,
+          }
+        }
+      },
+      {
+        name: 'Google Workspace Alt',
+        config: {
+          host: 'smtp.gmail.com',
+          port: 465,
+          secure: true,
+          auth: {
+            user: gmailUser,
+            pass: gmailPassword,
+          }
+        }
+      }
+    ];
     
-    // Verify connection
-    console.log('🔗 Verifying SMTP connection...');
-    await transporter.verify();
-    console.log('✅ SMTP connection verified!');
+    let transporter = null;
+    let workingConfig = null;
+    
+    for (const {name, config} of configs) {
+      try {
+        console.log(`� Testing ${name}...`);
+        transporter = nodemailer.createTransport(config);
+        await transporter.verify();
+        console.log(`✅ ${name} works!`);
+        workingConfig = name;
+        break;
+      } catch (error) {
+        console.log(`❌ ${name} failed: ${error.message}`);
+        continue;
+      }
+    }
+    
+    if (!transporter || !workingConfig) {
+      throw new Error('All SMTP configurations failed. You likely need an App Password.');
+    }
     
     // Generate a test QR code
     console.log('🎯 Generating test QR code...');
