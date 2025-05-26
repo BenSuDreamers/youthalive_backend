@@ -123,6 +123,9 @@ const parseWebhook = (payload) => {
                 // Extract form fields from rawData
                 const rawFields = rawData;
                 const formFields = {};
+                // Add the formId to the form fields
+                formFields.formID = formId;
+                formFields.formId = formId;
                 // Process each field
                 for (const [key, value] of Object.entries(rawFields)) {
                     if (key.startsWith('q') && key.includes('_')) {

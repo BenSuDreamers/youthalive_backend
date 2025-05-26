@@ -133,10 +133,13 @@ export const parseWebhook = (payload: any): ParsedSubmission => {
       try {
         const rawData = JSON.parse(payload.rawRequest);
         console.log('Parsed rawRequest:', JSON.stringify(rawData, null, 2));
-        
-        // Extract form fields from rawData
+          // Extract form fields from rawData
         const rawFields = rawData;
         const formFields: any = {};
+        
+        // Add the formId to the form fields
+        formFields.formID = formId;
+        formFields.formId = formId;
         
         // Process each field
         for (const [key, value] of Object.entries(rawFields)) {
