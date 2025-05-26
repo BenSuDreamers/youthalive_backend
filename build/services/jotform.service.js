@@ -103,98 +103,176 @@ const getLiveEvents = () => __awaiter(void 0, void 0, void 0, function* () {
     }
 });
 exports.getLiveEvents = getLiveEvents;
-/**
- * Parse webhook data from Jotform submission
- * @param payload The raw webhook payload from Jotform
- * @returns Parsed submission data
- */
 const parseWebhook = (payload) => {
     try {
+        // Log the entire payload to understand its structure
+        logger_1.default.info('Parsing webhook payload', {
+            payload,
+            keys: Object.keys(payload),
+            formID: payload.formID || payload.formId
+        });
         // Extract formID from the payload
-        const formId = payload.formID || payload.form_id || '';
-        // Handle different webhook payload formats
-        let submissionData = {};
-        // If rawRequest is a string, parse it
-        if (typeof payload.rawRequest === 'string') {
-            try {
-                const parsed = JSON.parse(payload.rawRequest);
-                // Check if pretty field exists (Jotform format)
-                if (parsed.pretty && typeof parsed.pretty === 'string') {
-                    submissionData = JSON.parse(parsed.pretty);
-                }
-                else {
-                    submissionData = parsed;
-                }
+        const formId = payload.formID || payload.form_id || payload.formId || '';
+        // Handle multipart form data format (direct field names)
+        let email = '';
+        let name = '';
+        let invoiceNo = `INV-${Date.now()}`;
+        let phone = '';
+        let church = '';
+        // Try multipart form field names first
+        if (payload.q5_email) {
+            email = payload.q5_email;
+        }
+        else if (payload.q4_email) {
+            email = payload.q4_email;
+        }
+        else if (payload.email) {
+            email = payload.email;
+        }
+        // Handle name - could be object or string
+        if (payload.q3_name) {
+            if (typeof payload.q3_name === 'object' && payload.q3_name !== null) {
+                const nameObj = payload.q3_name;
+                name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
             }
-            catch (e) {
-                logger_1.default.warn('Failed to parse rawRequest JSON', { rawRequest: payload.rawRequest });
-                submissionData = payload;
+            else {
+                name = String(payload.q3_name);
             }
         }
-        else if (payload.rawRequest && typeof payload.rawRequest === 'object') {
-            submissionData = payload.rawRequest;
+        else if (payload['q3_name[first]'] && payload['q3_name[last]']) {
+            name = `${payload['q3_name[first]']} ${payload['q3_name[last]']}`.trim();
         }
-        else {
-            // Use the payload directly
-            submissionData = payload;
+        else if (payload.q4_fullName) {
+            name = payload.q4_fullName;
         }
-        logger_1.default.info('Parsing webhook with submission data', { submissionData, formId });
-        // Map fields based on form ID (different forms have different field structures)
-        let fieldMappings = {};
-        if (formId === '251442125173852') {
-            // WebApp test form mappings
-            fieldMappings = {
-                name: '3',
-                email: '4',
-                invoiceId: '11',
-                church: '12',
-                phone: '16'
-            };
+        else if (payload.name) {
+            name = String(payload.name);
         }
-        else if (formId === '241078261192858') {
-            // Stadium 24 form mappings
-            fieldMappings = {
-                name: '4',
-                email: '5',
-                phone: '7',
-                church: '10',
-                invoiceId: '38'
-            };
+        // Handle invoice ID
+        if (payload.q7_invoiceId) {
+            invoiceNo = payload.q7_invoiceId;
         }
-        else {
-            // Default/Stadium Registration Form mappings
-            fieldMappings = {
-                name: '3',
-                email: '4',
-                phone: '16',
-                church: '12',
-                invoiceId: '11'
-            };
+        else if (payload.q11_autoincrement) {
+            invoiceNo = payload.q11_autoincrement;
         }
-        // Extract values using the appropriate field mappings
-        const name = submissionData[fieldMappings.name] || '';
-        const email = submissionData[fieldMappings.email] || '';
-        let invoiceNo = submissionData[fieldMappings.invoiceId] || `INV-${Date.now()}`;
-        const phone = submissionData[fieldMappings.phone] || '';
-        const church = submissionData[fieldMappings.church] || '';
+        else if (payload.invoiceId) {
+            invoiceNo = payload.invoiceId;
+        }
+        // Handle phone
+        if (payload.q11_phoneNumber) {
+            if (typeof payload.q11_phoneNumber === 'object' && payload.q11_phoneNumber !== null) {
+                const phoneObj = payload.q11_phoneNumber;
+                phone = phoneObj.full || String(payload.q11_phoneNumber);
+            }
+            else {
+                phone = String(payload.q11_phoneNumber);
+            }
+        }
+        else if (payload['q11_phoneNumber[full]']) {
+            phone = payload['q11_phoneNumber[full]'];
+        }
+        else if (payload.phone) {
+            phone = payload.phone;
+        }
+        // Handle church/youth group
+        if (payload.q9_youthGroup) {
+            church = payload.q9_youthGroup;
+        }
+        else if (payload.q12_textbox) {
+            church = payload.q12_textbox;
+        }
+        else if (payload.church || payload.youthGroup) {
+            church = payload.church || payload.youthGroup;
+        }
         // Clean invoice number (remove "# INV-" prefix if present)
         if (typeof invoiceNo === 'string' && invoiceNo.startsWith('# INV-')) {
             invoiceNo = invoiceNo.substring(6);
         }
-        // Handle name field if it's an object (some forms return {first, last})
-        let finalName = name;
-        if (typeof name === 'object' && name !== null) {
-            if (name.first || name.last) {
-                finalName = `${name.first || ''} ${name.last || ''}`.trim();
+        // Legacy parsing logic for JSON payloads
+        if (!email && !name) {
+            // Handle different webhook payload formats
+            let submissionData = {};
+            // If rawRequest is a string, parse it
+            if (typeof payload.rawRequest === 'string') {
+                try {
+                    const parsed = JSON.parse(payload.rawRequest);
+                    // Check if pretty field exists (Jotform format)
+                    if (parsed.pretty && typeof parsed.pretty === 'string') {
+                        submissionData = JSON.parse(parsed.pretty);
+                    }
+                    else {
+                        submissionData = parsed;
+                    }
+                }
+                catch (e) {
+                    logger_1.default.warn('Failed to parse rawRequest JSON', { rawRequest: payload.rawRequest });
+                    submissionData = payload;
+                }
+            }
+            else if (payload.rawRequest && typeof payload.rawRequest === 'object') {
+                submissionData = payload.rawRequest;
             }
             else {
-                finalName = String(name);
+                // Use the payload directly
+                submissionData = payload;
+            }
+            // Map fields based on form ID (different forms have different field structures)
+            let fieldMappings = {};
+            if (formId === '251442125173852') {
+                // WebApp test form mappings
+                fieldMappings = {
+                    name: '3',
+                    email: '4',
+                    invoiceId: '11',
+                    church: '12',
+                    phone: '16'
+                };
+            }
+            else if (formId === '241078261192858') {
+                // Stadium 24 form mappings
+                fieldMappings = {
+                    name: '4',
+                    email: '5',
+                    phone: '7',
+                    church: '10',
+                    invoiceId: '38'
+                };
+            }
+            else {
+                // Default/Stadium Registration Form mappings
+                fieldMappings = {
+                    name: '3',
+                    email: '4',
+                    phone: '16',
+                    church: '12',
+                    invoiceId: '11'
+                };
+            }
+            // Extract values using the appropriate field mappings
+            name = submissionData[fieldMappings.name] || '';
+            email = submissionData[fieldMappings.email] || '';
+            invoiceNo = submissionData[fieldMappings.invoiceId] || `INV-${Date.now()}`;
+            phone = submissionData[fieldMappings.phone] || '';
+            church = submissionData[fieldMappings.church] || '';
+            // Clean invoice number again
+            if (typeof invoiceNo === 'string' && invoiceNo.startsWith('# INV-')) {
+                invoiceNo = invoiceNo.substring(6);
+            }
+            // Handle name field if it's an object (some forms return {first, last})
+            if (typeof name === 'object' && name !== null) {
+                const nameObj = name;
+                if (nameObj.first || nameObj.last) {
+                    name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
+                }
+                else {
+                    name = String(name);
+                }
             }
         }
         // Create parsed submission object
         const parsedSubmission = {
             formId,
-            name: finalName,
+            name,
             email,
             invoiceNo,
             phone,
@@ -206,8 +284,10 @@ const parseWebhook = (payload) => {
             formId,
             email,
             invoiceNo,
-            name: finalName,
-            extractedFrom: Object.keys(submissionData)
+            name,
+            phone,
+            church,
+            payloadKeys: Object.keys(payload)
         });
         return parsedSubmission;
     }
