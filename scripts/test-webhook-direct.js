@@ -20,8 +20,7 @@ async function testWebhook() {
       })
     };
       console.log('📤 Sending webhook payload:', JSON.stringify(webhookPayload, null, 2));
-    
-    const response = await axios.post('http://localhost:3000/api/webhooks/jotform', webhookPayload, {
+      const response = await axios.post('https://youthalive-backend-873403ae276a.herokuapp.com/api/webhooks/jotform', webhookPayload, {
       headers: {
         'Content-Type': 'application/json'
       }
