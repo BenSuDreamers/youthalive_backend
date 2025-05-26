@@ -188,20 +188,73 @@ const parseWebhook = (payload) => {
         if (typeof invoiceNo === 'string' && invoiceNo.startsWith('# INV-')) {
             invoiceNo = invoiceNo.substring(6);
         }
+        // Also handle "# " prefix without INV
+        if (typeof invoiceNo === 'string' && invoiceNo.startsWith('# ')) {
+            invoiceNo = invoiceNo.substring(2);
+        }
         // Legacy parsing logic for JSON payloads
         if (!email && !name) {
             // Handle different webhook payload formats
             let submissionData = {};
-            // If rawRequest is a string, parse it
+            // If rawRequest is a string, parse it to get the actual form field data
             if (typeof payload.rawRequest === 'string') {
                 try {
                     const parsed = JSON.parse(payload.rawRequest);
-                    // Check if pretty field exists (Jotform format)
-                    if (parsed.pretty && typeof parsed.pretty === 'string') {
-                        submissionData = JSON.parse(parsed.pretty);
+                    submissionData = parsed;
+                    // Now try to parse the actual form fields from the rawRequest data
+                    // This contains the real form field names like q3_ltstronggtnameltstronggt, q4_email4, etc.
+                    // Extract email from various possible field names
+                    if (parsed.q4_email4) {
+                        email = parsed.q4_email4;
                     }
-                    else {
-                        submissionData = parsed;
+                    else if (parsed.q5_email) {
+                        email = parsed.q5_email;
+                    }
+                    // Extract name from various possible field names
+                    if (parsed.q3_ltstronggtnameltstronggt) {
+                        const nameObj = parsed.q3_ltstronggtnameltstronggt;
+                        if (typeof nameObj === 'object' && nameObj !== null) {
+                            name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
+                        }
+                        else {
+                            name = String(nameObj);
+                        }
+                    }
+                    else if (parsed.q3_name) {
+                        if (typeof parsed.q3_name === 'object' && parsed.q3_name !== null) {
+                            const nameObj = parsed.q3_name;
+                            name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
+                        }
+                        else {
+                            name = String(parsed.q3_name);
+                        }
+                    }
+                    // Extract invoice ID
+                    if (parsed.q11_invoiceId) {
+                        invoiceNo = parsed.q11_invoiceId;
+                    }
+                    else if (parsed.q7_invoiceId) {
+                        invoiceNo = parsed.q7_invoiceId;
+                    }
+                    // Extract phone
+                    if (parsed.q16_ltstronggtphoneNumberltstronggt) {
+                        phone = parsed.q16_ltstronggtphoneNumberltstronggt;
+                    }
+                    else if (parsed.q11_phoneNumber) {
+                        if (typeof parsed.q11_phoneNumber === 'object' && parsed.q11_phoneNumber !== null) {
+                            const phoneObj = parsed.q11_phoneNumber;
+                            phone = phoneObj.full || String(parsed.q11_phoneNumber);
+                        }
+                        else {
+                            phone = String(parsed.q11_phoneNumber);
+                        }
+                    }
+                    // Extract church/youth group
+                    if (parsed.q12_ltstronggtwhichYouth) {
+                        church = parsed.q12_ltstronggtwhichYouth;
+                    }
+                    else if (parsed.q9_youthGroup) {
+                        church = parsed.q9_youthGroup;
                     }
                 }
                 catch (e) {
@@ -257,6 +310,10 @@ const parseWebhook = (payload) => {
             // Clean invoice number again
             if (typeof invoiceNo === 'string' && invoiceNo.startsWith('# INV-')) {
                 invoiceNo = invoiceNo.substring(6);
+            }
+            // Also handle "# " prefix without INV
+            if (typeof invoiceNo === 'string' && invoiceNo.startsWith('# ')) {
+                invoiceNo = invoiceNo.substring(2);
             }
             // Handle name field if it's an object (some forms return {first, last})
             if (typeof name === 'object' && name !== null) {
