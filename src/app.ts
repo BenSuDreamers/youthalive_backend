@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.routes';
 import eventRoutes from './routes/event.routes';
 import checkinRoutes from './routes/checkin.routes';
 import webhookRoutes from './routes/webhook.routes';
+import exportRoutes from './routes/export.routes';
 import logger from './utils/logger';
 import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 
@@ -41,6 +42,7 @@ app.post('/jotform', upload.none(), webhookHandler);
 app.use('/api/auth', authRoutes);
 app.use('/api/events', eventRoutes);
 app.use('/api/checkin', checkinRoutes);
+app.use('/api/export', exportRoutes); // Add export routes
 app.use('/api/webhooks', webhookRoutes);
 
 // Apply error handling middleware

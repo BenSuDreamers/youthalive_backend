@@ -14,6 +14,7 @@ const auth_routes_1 = __importDefault(require("./routes/auth.routes"));
 const event_routes_1 = __importDefault(require("./routes/event.routes"));
 const checkin_routes_1 = __importDefault(require("./routes/checkin.routes"));
 const webhook_routes_1 = __importDefault(require("./routes/webhook.routes"));
+const export_routes_1 = __importDefault(require("./routes/export.routes"));
 const error_middleware_1 = require("./middlewares/error.middleware");
 // Initialize Express app
 const app = (0, express_1.default)();
@@ -37,6 +38,7 @@ app.post('/jotform', upload.none(), event_controller_1.webhookHandler);
 app.use('/api/auth', auth_routes_1.default);
 app.use('/api/events', event_routes_1.default);
 app.use('/api/checkin', checkin_routes_1.default);
+app.use('/api/export', export_routes_1.default); // Add export routes
 app.use('/api/webhooks', webhook_routes_1.default);
 // Apply error handling middleware
 app.use(error_middleware_1.notFoundHandler);
