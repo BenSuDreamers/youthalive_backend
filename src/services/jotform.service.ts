@@ -250,13 +250,16 @@ export const parseWebhook = (payload: any): ParsedSubmission => {
               phone = String(parsed.q11_phoneNumber);
             }
           }
-          
-          // Extract church/youth group
+            // Extract church/youth group
           if (parsed.q12_ltstronggtwhichYouth) {
             church = parsed.q12_ltstronggtwhichYouth;
           } else if (parsed.q9_youthGroup) {
             church = parsed.q9_youthGroup;
           }
+
+          logger.info('Values extracted from rawRequest parsing', {
+            name, email, invoiceNo, phone, church
+          });
           
         } catch (e) {
           logger.warn('Failed to parse rawRequest JSON', { rawRequest: payload.rawRequest });
@@ -269,45 +272,72 @@ export const parseWebhook = (payload: any): ParsedSubmission => {
         submissionData = payload;
       }
       
-      // Map fields based on form ID (different forms have different field structures)
-      let fieldMappings: { [key: string]: string } = {};
-      
-      if (formId === '251442125173852') {
-        // WebApp test form mappings
-        fieldMappings = {
-          name: '3',
-          email: '4', 
-          invoiceId: '11',
-          church: '12',
-          phone: '16'
-        };
-      } else if (formId === '241078261192858') {
-        // Stadium 24 form mappings
-        fieldMappings = {
-          name: '4',
-          email: '5',
-          phone: '7',
-          church: '10',
-          invoiceId: '38'
-        };
-      } else {
-        // Default/Stadium Registration Form mappings
-        fieldMappings = {
-          name: '3',
-          email: '4',
-          phone: '16',
-          church: '12',
-          invoiceId: '11'
-        };
+      // Only use field mappings if we didn't extract values from rawRequest
+      if (!email || !name || !invoiceNo) {
+        logger.info('Using field mappings fallback since some values are missing', {
+          hasEmail: !!email, hasName: !!name, hasInvoiceNo: !!invoiceNo
+        });        
+        // Map fields based on form ID (different forms have different field structures)
+        let fieldMappings: { [key: string]: string } = {};
+        
+        if (formId === '251442125173852') {
+          // WebApp test form mappings
+          fieldMappings = {
+            name: '3',
+            email: '4', 
+            invoiceId: '11',
+            church: '12',
+            phone: '16'
+          };
+        } else if (formId === '241078261192858') {
+          // Stadium 24 form mappings
+          fieldMappings = {
+            name: '4',
+            email: '5',
+            phone: '7',
+            church: '10',
+            invoiceId: '38'
+          };
+        } else {
+          // Default/Stadium Registration Form mappings
+          fieldMappings = {
+            name: '3',
+            email: '4',
+            phone: '16',
+            church: '12',
+            invoiceId: '11'
+          };
+        }
+        
+        // Extract values using the appropriate field mappings only if not already set
+        if (!name) {
+          name = submissionData[fieldMappings.name] || '';
+        }
+        if (!email) {
+          email = submissionData[fieldMappings.email] || '';
+        }
+        if (!invoiceNo) {
+          invoiceNo = submissionData[fieldMappings.invoiceId] || `INV-${Date.now()}`;
+        }
+        if (!phone) {
+          phone = submissionData[fieldMappings.phone] || '';
+        }
+        if (!church) {
+          church = submissionData[fieldMappings.church] || '';
+        }
+        
+        // Handle name field if it's an object (some forms return {first, last})
+        if (typeof name === 'object' && name !== null) {
+          const nameObj = name as any;
+          if (nameObj.first || nameObj.last) {
+            name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
+          } else {
+            name = String(name);
+          }
+        }
       }
       
-      // Extract values using the appropriate field mappings
-      name = submissionData[fieldMappings.name] || '';
-      email = submissionData[fieldMappings.email] || '';
-      invoiceNo = submissionData[fieldMappings.invoiceId] || `INV-${Date.now()}`;
-      phone = submissionData[fieldMappings.phone] || '';
-      church = submissionData[fieldMappings.church] || '';
-        // Clean invoice number again
+      // Clean invoice number format
       if (typeof invoiceNo === 'string' && invoiceNo.startsWith('# INV-')) {
         invoiceNo = invoiceNo.substring(6);
       }
@@ -316,28 +346,23 @@ export const parseWebhook = (payload: any): ParsedSubmission => {
       if (typeof invoiceNo === 'string' && invoiceNo.startsWith('# ')) {
         invoiceNo = invoiceNo.substring(2);
       }
-        // Handle name field if it's an object (some forms return {first, last})
-      if (typeof name === 'object' && name !== null) {
-        const nameObj = name as any;
-        if (nameObj.first || nameObj.last) {
-          name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
-        } else {
-          name = String(name);
-        }
+      
+      // Generate invoice number if still missing
+      if (!invoiceNo) {
+        invoiceNo = `INV-${Date.now()}`;
       }
-    }
 
-    // Create parsed submission object
-    const parsedSubmission: ParsedSubmission = {
-      formId,
-      name,
-      email,
-      invoiceNo,
-      phone,
-      church,
-      eventName: 'Youth Alive Event',
-      eventDate: new Date().toLocaleDateString(),
-    };
+      // Create parsed submission object
+      const parsedSubmission: ParsedSubmission = {
+        formId,
+        name,
+        email,
+        invoiceNo,
+        phone,
+        church,
+        eventName: 'Youth Alive Event',
+        eventDate: new Date().toLocaleDateString(),
+      };
 
     logger.info('Webhook data parsed successfully', { 
       formId, 

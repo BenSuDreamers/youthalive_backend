@@ -256,6 +256,9 @@ const parseWebhook = (payload) => {
                     else if (parsed.q9_youthGroup) {
                         church = parsed.q9_youthGroup;
                     }
+                    logger_1.default.info('Values extracted from rawRequest parsing', {
+                        name, email, invoiceNo, phone, church
+                    });
                 }
                 catch (e) {
                     logger_1.default.warn('Failed to parse rawRequest JSON', { rawRequest: payload.rawRequest });
@@ -269,45 +272,71 @@ const parseWebhook = (payload) => {
                 // Use the payload directly
                 submissionData = payload;
             }
-            // Map fields based on form ID (different forms have different field structures)
-            let fieldMappings = {};
-            if (formId === '251442125173852') {
-                // WebApp test form mappings
-                fieldMappings = {
-                    name: '3',
-                    email: '4',
-                    invoiceId: '11',
-                    church: '12',
-                    phone: '16'
-                };
+            // Only use field mappings if we didn't extract values from rawRequest
+            if (!email || !name || !invoiceNo) {
+                logger_1.default.info('Using field mappings fallback since some values are missing', {
+                    hasEmail: !!email, hasName: !!name, hasInvoiceNo: !!invoiceNo
+                });
+                // Map fields based on form ID (different forms have different field structures)
+                let fieldMappings = {};
+                if (formId === '251442125173852') {
+                    // WebApp test form mappings
+                    fieldMappings = {
+                        name: '3',
+                        email: '4',
+                        invoiceId: '11',
+                        church: '12',
+                        phone: '16'
+                    };
+                }
+                else if (formId === '241078261192858') {
+                    // Stadium 24 form mappings
+                    fieldMappings = {
+                        name: '4',
+                        email: '5',
+                        phone: '7',
+                        church: '10',
+                        invoiceId: '38'
+                    };
+                }
+                else {
+                    // Default/Stadium Registration Form mappings
+                    fieldMappings = {
+                        name: '3',
+                        email: '4',
+                        phone: '16',
+                        church: '12',
+                        invoiceId: '11'
+                    };
+                }
+                // Extract values using the appropriate field mappings only if not already set
+                if (!name) {
+                    name = submissionData[fieldMappings.name] || '';
+                }
+                if (!email) {
+                    email = submissionData[fieldMappings.email] || '';
+                }
+                if (!invoiceNo) {
+                    invoiceNo = submissionData[fieldMappings.invoiceId] || `INV-${Date.now()}`;
+                }
+                if (!phone) {
+                    phone = submissionData[fieldMappings.phone] || '';
+                }
+                if (!church) {
+                    church = submissionData[fieldMappings.church] || '';
+                }
+                // Handle name field if it's an object (some forms return {first, last})
+                if (typeof name === 'object' && name !== null) {
+                    const nameObj = name;
+                    if (nameObj.first || nameObj.last) {
+                        name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
+                    }
+                    else {
+                        name = String(name);
+                    }
+                }
             }
-            else if (formId === '241078261192858') {
-                // Stadium 24 form mappings
-                fieldMappings = {
-                    name: '4',
-                    email: '5',
-                    phone: '7',
-                    church: '10',
-                    invoiceId: '38'
-                };
-            }
-            else {
-                // Default/Stadium Registration Form mappings
-                fieldMappings = {
-                    name: '3',
-                    email: '4',
-                    phone: '16',
-                    church: '12',
-                    invoiceId: '11'
-                };
-            }
-            // Extract values using the appropriate field mappings
-            name = submissionData[fieldMappings.name] || '';
-            email = submissionData[fieldMappings.email] || '';
-            invoiceNo = submissionData[fieldMappings.invoiceId] || `INV-${Date.now()}`;
-            phone = submissionData[fieldMappings.phone] || '';
-            church = submissionData[fieldMappings.church] || '';
-            // Clean invoice number again
+            // Clean invoice number format
             if (typeof invoiceNo === 'string' && invoiceNo.startsWith('# INV-')) {
                 invoiceNo = invoiceNo.substring(6);
             }
@@ -315,84 +344,81 @@ const parseWebhook = (payload) => {
             if (typeof invoiceNo === 'string' && invoiceNo.startsWith('# ')) {
                 invoiceNo = invoiceNo.substring(2);
             }
-            // Handle name field if it's an object (some forms return {first, last})
-            if (typeof name === 'object' && name !== null) {
-                const nameObj = name;
-                if (nameObj.first || nameObj.last) {
-                    name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
-                }
-                else {
-                    name = String(name);
-                }
+            // Generate invoice number if still missing
+            if (!invoiceNo) {
+                invoiceNo = `INV-${Date.now()}`;
+            }
+            // Create parsed submission object
+            const parsedSubmission = {
+                formId,
+                name,
+                email,
+                invoiceNo,
+                phone,
+                church,
+                eventName: 'Youth Alive Event',
+                eventDate: new Date().toLocaleDateString(),
+            };
+            logger_1.default.info('Webhook data parsed successfully', {
+                formId,
+                email,
+                invoiceNo,
+                name,
+                phone,
+                church,
+                payloadKeys: Object.keys(payload)
+            });
+            return parsedSubmission;
+        }
+        try { }
+        catch (error) {
+            logger_1.default.error('Error parsing webhook data', { error, payload });
+            throw new Error('Failed to parse webhook data');
+        }
+    }
+    finally { }
+    ;
+    /**
+     * Helper function to extract values from Jotform submission
+     * Handles different formats of submission data
+     */
+    const getSubmissionValue = (submission, field) => {
+        if (!submission)
+            return undefined;
+        // Stadium Registration Form field mappings based on your form analysis
+        const fieldMappings = {
+            'name': ['3', 'q3', 'q3_fullName', 'fullName', 'name'],
+            'email': ['4', 'q4', 'q4_email', 'email'],
+            'phone': ['16', 'q16', 'q16_phone', 'phone'],
+            'church': ['12', 'q12', 'q12_textbox', 'youthGroup', 'church'],
+            'invoiceId': ['11', 'q11', 'q11_autoincrement', 'invoiceId', 'invoice'],
+            'youthMinistry': ['12', 'q12', 'q12_textbox', 'youthGroup'],
+        };
+        const possibleKeys = fieldMappings[field] || [field];
+        // Try all possible field keys
+        for (const key of possibleKeys) {
+            // Direct access
+            if (submission[key]) {
+                return submission[key].toString();
+            }
+            // Try answers object format (common in Jotform webhooks)
+            if (submission.answers && submission.answers[key]) {
+                const answer = submission.answers[key];
+                return (answer.answer || answer).toString();
+            }
+            // Try rawRequest format
+            if (submission.rawRequest && submission.rawRequest[key]) {
+                return submission.rawRequest[key].toString();
             }
         }
-        // Create parsed submission object
-        const parsedSubmission = {
-            formId,
-            name,
-            email,
-            invoiceNo,
-            phone,
-            church,
-            eventName: 'Youth Alive Event',
-            eventDate: new Date().toLocaleDateString(),
-        };
-        logger_1.default.info('Webhook data parsed successfully', {
-            formId,
-            email,
-            invoiceNo,
-            name,
-            phone,
-            church,
-            payloadKeys: Object.keys(payload)
-        });
-        return parsedSubmission;
-    }
-    catch (error) {
-        logger_1.default.error('Error parsing webhook data', { error, payload });
-        throw new Error('Failed to parse webhook data');
-    }
+        // Fallback: search for field in all submission keys
+        for (const [submissionKey, value] of Object.entries(submission)) {
+            if (submissionKey.toLowerCase().includes(field.toLowerCase())) {
+                return value === null || value === void 0 ? void 0 : value.toString();
+            }
+        }
+        return undefined;
+    };
 };
 exports.parseWebhook = parseWebhook;
-/**
- * Helper function to extract values from Jotform submission
- * Handles different formats of submission data
- */
-const getSubmissionValue = (submission, field) => {
-    if (!submission)
-        return undefined;
-    // Stadium Registration Form field mappings based on your form analysis
-    const fieldMappings = {
-        'name': ['3', 'q3', 'q3_fullName', 'fullName', 'name'],
-        'email': ['4', 'q4', 'q4_email', 'email'],
-        'phone': ['16', 'q16', 'q16_phone', 'phone'],
-        'church': ['12', 'q12', 'q12_textbox', 'youthGroup', 'church'],
-        'invoiceId': ['11', 'q11', 'q11_autoincrement', 'invoiceId', 'invoice'],
-        'youthMinistry': ['12', 'q12', 'q12_textbox', 'youthGroup'],
-    };
-    const possibleKeys = fieldMappings[field] || [field];
-    // Try all possible field keys
-    for (const key of possibleKeys) {
-        // Direct access
-        if (submission[key]) {
-            return submission[key].toString();
-        }
-        // Try answers object format (common in Jotform webhooks)
-        if (submission.answers && submission.answers[key]) {
-            const answer = submission.answers[key];
-            return (answer.answer || answer).toString();
-        }
-        // Try rawRequest format
-        if (submission.rawRequest && submission.rawRequest[key]) {
-            return submission.rawRequest[key].toString();
-        }
-    }
-    // Fallback: search for field in all submission keys
-    for (const [submissionKey, value] of Object.entries(submission)) {
-        if (submissionKey.toLowerCase().includes(field.toLowerCase())) {
-            return value === null || value === void 0 ? void 0 : value.toString();
-        }
-    }
-    return undefined;
-};
 //# sourceMappingURL=jotform.service.js.map
