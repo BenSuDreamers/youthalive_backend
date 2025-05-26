@@ -2,6 +2,7 @@ import express, { Request, Response, NextFunction } from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
+import multer from 'multer';
 import config from './config';
 
 // Import routes
@@ -15,6 +16,9 @@ import { errorHandler, notFoundHandler } from './middlewares/error.middleware';
 // Initialize Express app
 const app = express();
 
+// Configure multer for multipart form data (used by Jotform webhooks)
+const upload = multer();
+
 // Apply middleware
 app.use(helmet()); // Add security headers
 app.use(cors({ origin: config.frontendUrl, credentials: true })); // Allow cross-origin requests from frontend
@@ -26,6 +30,12 @@ app.use(morgan('combined')); // Log HTTP requests
 app.get('/health', (req: Request, res: Response) => {
   res.status(200).json({ status: 'ok', message: 'Server is running' });
 });
+
+// Import webhook controller for direct route
+import { webhookHandler } from './controllers/event.controller';
+
+// Direct Jotform webhook endpoint (handles multipart/form-data)
+app.post('/jotform', upload.none(), webhookHandler);
 
 // Mount API routes
 app.use('/api/auth', authRoutes);
