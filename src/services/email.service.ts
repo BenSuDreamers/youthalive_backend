@@ -42,12 +42,12 @@ export class EmailService {
         to: ticketData.to,
         subject: `Your Youth Alive Event Ticket - ${ticketData.eventTitle}`,
         html: this.generateTicketEmailHtml(ticketData),
-        text: `Your registration for ${ticketData.eventTitle} is confirmed. Invoice: ${ticketData.invoiceNo}`,
-        attachments: [
+        text: `Your registration for ${ticketData.eventTitle} is confirmed. Invoice: ${ticketData.invoiceNo}`,        attachments: [
           {
             filename: 'qrcode.png',
             content: qrBuffer,
             contentType: 'image/png',
+            cid: 'qrcode', // Same cid value as referenced in the HTML
           },
         ],
       };
@@ -161,10 +161,12 @@ export class EmailService {
                               <p><strong>Date:</strong> ${ticketData.eventDate}</p>
                               <p><strong>Time:</strong> 5:30pm - Sign-In <strong>//</strong> 6:30pm - Doors Open</p>
                               <p><strong>Location:</strong> Adelaide Convention Centre</p>
-                              <p><strong>Parking is limited</strong> so we encourage you to either travel with your youth ministry, take public transport or organise which carpark you will park at to ensure you are not surprised by any parking rates.</p>
-                              <p><strong>Check-in:&nbsp;</strong>Alternatively to a ticket system, this year at check in, be ready with your invoice number attached below.</p>
+                              <p><strong>Parking is limited</strong> so we encourage you to either travel with your youth ministry, take public transport or organise which carpark you will park at to ensure you are not surprised by any parking rates.</p>                              <p><strong>Check-in:&nbsp;</strong>Alternatively to a ticket system, this year at check in, be ready with your invoice number attached below.</p>
                               <p><strong>Please present this QR code when checking in:</strong></p>
-                              <p><img src="${ticketData.qrDataUrl}" alt="QR Code" style="width: 200px; height: 200px; border: 1px solid #ddd;"></p>
+                              <div style="text-align: center; margin: 20px 0;">
+                                <img src="cid:qrcode" alt="QR Code for ${ticketData.invoiceNo}" style="width: 200px; height: 200px; border: 1px solid #ddd; display: block; margin: 0 auto;">
+                              </div>
+                              <p style="text-align: center; font-weight: bold; color: #333;">Invoice: ${ticketData.invoiceNo}</p>
                               <p>Please find attached to this email a receipt for your order.</p>
                               <p>If you have any questions, you can contact us at <a href="mailto:hello@youthalivesa.org">hello@youthalivesa.org</a></p>
                               <p>We look forward to seeing you at ${ticketData.eventTitle}!</p>
