@@ -9,13 +9,12 @@ async function testWebhook() {
       submissionID: 'test-submission-' + Date.now(),
       rawRequest: JSON.stringify({
         form_id: '251442125173852',
-        submission_id: 'test-submission-' + Date.now(),
-        pretty: JSON.stringify({
-          '3': 'John Test',
-          '4': 'john.test@example.com',
+        submission_id: 'test-submission-' + Date.now(),        pretty: JSON.stringify({
+          '3': 'Johnson Bijin',
+          '4': 'benjamin@youthalivesa.org',
           '16': '0412345678',
           '12': 'Test Church',
-          '11': 'TEST-001'
+          '11': 'TEST-' + Date.now()
         })
       })
     };
