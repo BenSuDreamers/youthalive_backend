@@ -133,7 +133,7 @@ export class EmailService {
                       <tbody>
                         <tr>
                           <td style="background: #ffffff; font-size: 0px; padding: 10px 0 0; word-break: break-word;" align="center">
-                            <img src="https://www.jotform.com/uploads/Benjamin_benjamin_SuBenjamin/form_files/Stadium%2024%20Guest%20Speaker%20Announcement%20(Logo).66207f2f8fdde4.16960870.png" alt="" />
+                            <img src="https://www.jotform.com/uploads/Benjamin_benjamin_SuBenjamin/form_files/Stadium%2024%20Guest%20Speaker%20Announcement%20(Logo).66207f2f8fdde4.16960870.png" alt="" style="max-width: 100%; height: auto; width: 600px;" />
                           </td>
                         </tr>
                       </tbody>
