@@ -1,11 +1,6 @@
-import { MailerSend, EmailParams, Sender, Recipient, Attachment } from 'mailersend';
+import nodemailer from 'nodemailer';
 import config from '../config';
 import logger from '../utils/logger';
-
-// Initialize MailerSend
-const mailerSend = new MailerSend({
-  apiKey: config.email.apiKey,
-});
 
 export interface TicketEmailData {
   to: string;
@@ -17,12 +12,21 @@ export interface TicketEmailData {
 }
 
 export class EmailService {
+  private transporter: nodemailer.Transporter;
   private fromEmail: string;
   private fromName: string;
   
   constructor() {
     this.fromEmail = config.email.fromEmail;
     this.fromName = config.email.fromName;
+      // Create Gmail SMTP transporter
+    this.transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        user: config.email.user,
+        pass: config.email.password,
+      },
+    });
   }
   
   /**
@@ -30,20 +34,25 @@ export class EmailService {
    */
   async sendTicketEmail(ticketData: TicketEmailData): Promise<void> {
     try {
-      // Convert QR code data URL to base64
-      const qrBase64 = ticketData.qrDataUrl.split(',')[1];
+      // Convert QR code data URL to attachment
+      const qrBuffer = Buffer.from(ticketData.qrDataUrl.split(',')[1], 'base64');
       
-      const emailParams = new EmailParams()
-        .setFrom(new Sender(this.fromEmail, this.fromName))
-        .setTo([new Recipient(ticketData.to, ticketData.name)])
-        .setSubject(`Event Registration Confirmation: ${ticketData.eventTitle}`)
-        .setHtml(this.generateTicketEmailHtml(ticketData))
-        .setText(`Your registration for ${ticketData.eventTitle} is confirmed. Invoice: ${ticketData.invoiceNo}`)
-        .setAttachments([
-          new Attachment(qrBase64, 'qrcode.png', 'attachment', 'qrcode')
-        ]);
+      const mailOptions = {
+        from: `"${this.fromName}" <${this.fromEmail}>`,
+        to: ticketData.to,
+        subject: `Your Youth Alive Event Ticket - ${ticketData.eventTitle}`,
+        html: this.generateTicketEmailHtml(ticketData),
+        text: `Your registration for ${ticketData.eventTitle} is confirmed. Invoice: ${ticketData.invoiceNo}`,
+        attachments: [
+          {
+            filename: 'qrcode.png',
+            content: qrBuffer,
+            contentType: 'image/png',
+          },
+        ],
+      };
 
-      await mailerSend.email.send(emailParams);
+      await this.transporter.sendMail(mailOptions);
       logger.info('Ticket email sent successfully', { to: ticketData.to, invoice: ticketData.invoiceNo });
     } catch (error) {
       logger.error('Failed to send ticket email', { error, to: ticketData.to });
@@ -56,14 +65,15 @@ export class EmailService {
    */
   async sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
     try {
-      const emailParams = new EmailParams()
-        .setFrom(new Sender(this.fromEmail, this.fromName))
-        .setTo([new Recipient(to)])
-        .setSubject('Password Reset Request - Youth Alive')
-        .setHtml(this.generatePasswordResetHtml(resetUrl))
-        .setText(`Reset your password by visiting: ${resetUrl}`);
+      const mailOptions = {
+        from: `"${this.fromName}" <${this.fromEmail}>`,
+        to: to,
+        subject: 'Password Reset Request - Youth Alive',
+        html: this.generatePasswordResetHtml(resetUrl),
+        text: `Reset your password by visiting: ${resetUrl}`,
+      };
 
-      await mailerSend.email.send(emailParams);
+      await this.transporter.sendMail(mailOptions);
       logger.info('Password reset email sent successfully', { to });
     } catch (error) {
       logger.error('Failed to send password reset email', { error, to });

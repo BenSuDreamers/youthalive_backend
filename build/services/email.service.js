@@ -13,17 +13,21 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.emailService = exports.EmailService = void 0;
-const mailersend_1 = require("mailersend");
+const nodemailer_1 = __importDefault(require("nodemailer"));
 const config_1 = __importDefault(require("../config"));
 const logger_1 = __importDefault(require("../utils/logger"));
-// Initialize MailerSend
-const mailerSend = new mailersend_1.MailerSend({
-    apiKey: config_1.default.email.apiKey,
-});
 class EmailService {
     constructor() {
         this.fromEmail = config_1.default.email.fromEmail;
         this.fromName = config_1.default.email.fromName;
+        // Create Gmail SMTP transporter
+        this.transporter = nodemailer_1.default.createTransport({
+            service: 'gmail',
+            auth: {
+                user: config_1.default.email.user,
+                pass: config_1.default.email.password,
+            },
+        });
     }
     /**
      * Send ticket confirmation email with QR code
@@ -31,18 +35,23 @@ class EmailService {
     sendTicketEmail(ticketData) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                // Convert QR code data URL to base64
-                const qrBase64 = ticketData.qrDataUrl.split(',')[1];
-                const emailParams = new mailersend_1.EmailParams()
-                    .setFrom(new mailersend_1.Sender(this.fromEmail, this.fromName))
-                    .setTo([new mailersend_1.Recipient(ticketData.to, ticketData.name)])
-                    .setSubject(`Event Registration Confirmation: ${ticketData.eventTitle}`)
-                    .setHtml(this.generateTicketEmailHtml(ticketData))
-                    .setText(`Your registration for ${ticketData.eventTitle} is confirmed. Invoice: ${ticketData.invoiceNo}`)
-                    .setAttachments([
-                    new mailersend_1.Attachment(qrBase64, 'qrcode.png', 'attachment', 'qrcode')
-                ]);
-                yield mailerSend.email.send(emailParams);
+                // Convert QR code data URL to attachment
+                const qrBuffer = Buffer.from(ticketData.qrDataUrl.split(',')[1], 'base64');
+                const mailOptions = {
+                    from: `"${this.fromName}" <${this.fromEmail}>`,
+                    to: ticketData.to,
+                    subject: `Your Youth Alive Event Ticket - ${ticketData.eventTitle}`,
+                    html: this.generateTicketEmailHtml(ticketData),
+                    text: `Your registration for ${ticketData.eventTitle} is confirmed. Invoice: ${ticketData.invoiceNo}`,
+                    attachments: [
+                        {
+                            filename: 'qrcode.png',
+                            content: qrBuffer,
+                            contentType: 'image/png',
+                        },
+                    ],
+                };
+                yield this.transporter.sendMail(mailOptions);
                 logger_1.default.info('Ticket email sent successfully', { to: ticketData.to, invoice: ticketData.invoiceNo });
             }
             catch (error) {
@@ -57,13 +66,14 @@ class EmailService {
     sendPasswordResetEmail(to, resetUrl) {
         return __awaiter(this, void 0, void 0, function* () {
             try {
-                const emailParams = new mailersend_1.EmailParams()
-                    .setFrom(new mailersend_1.Sender(this.fromEmail, this.fromName))
-                    .setTo([new mailersend_1.Recipient(to)])
-                    .setSubject('Password Reset Request - Youth Alive')
-                    .setHtml(this.generatePasswordResetHtml(resetUrl))
-                    .setText(`Reset your password by visiting: ${resetUrl}`);
-                yield mailerSend.email.send(emailParams);
+                const mailOptions = {
+                    from: `"${this.fromName}" <${this.fromEmail}>`,
+                    to: to,
+                    subject: 'Password Reset Request - Youth Alive',
+                    html: this.generatePasswordResetHtml(resetUrl),
+                    text: `Reset your password by visiting: ${resetUrl}`,
+                };
+                yield this.transporter.sendMail(mailOptions);
                 logger_1.default.info('Password reset email sent successfully', { to });
             }
             catch (error) {

@@ -26,10 +26,10 @@ interface Config {
   jotform: {
     apiKey: string;
   };
-  
-  // Email
+    // Email
   email: {
-    apiKey: string;
+    user: string;
+    password: string;
     fromEmail: string;
     fromName: string;
   };
@@ -44,7 +44,8 @@ const requiredEnvVars = [
   'JWT_SECRET',
   'REGISTRATION_SECRET',
   'JOTFORM_API_KEY',
-  'MAILERSEND_API_KEY',
+  'GMAIL_USER',
+  'GMAIL_PASSWORD',
   'FROM_EMAIL',
   'FROM_NAME'
 ];
@@ -78,13 +79,13 @@ const config: Config = {
   jotform: {
     apiKey: process.env.JOTFORM_API_KEY!,
   },
-  
-  // Email config
+    // Email config
   email: {
-    apiKey: process.env.MAILERSEND_API_KEY!,
+    user: process.env.GMAIL_USER!,
+    password: process.env.GMAIL_PASSWORD!,
     fromEmail: process.env.FROM_EMAIL!,
     fromName: process.env.FROM_NAME!,
-  },  
+  },
   // Frontend URL
   frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
 };
