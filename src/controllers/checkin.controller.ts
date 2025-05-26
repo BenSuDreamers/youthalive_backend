@@ -65,7 +65,7 @@ export const searchGuests = async (req: Request, res: Response): Promise<void> =
  */
 export const checkIn = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { ticketId, invoiceNo } = req.body;
+    const { ticketId, invoiceNo, eventId } = req.body;
 
     // Validate that at least one identifier is provided
     if (!ticketId && !invoiceNo) {
@@ -76,7 +76,7 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Find the ticket by ID or invoice number
+    // Find the ticket by ID or invoice number, optionally filtered by event
     let ticket;
     if (ticketId) {
       // Ensure valid MongoDB ID
@@ -87,16 +87,36 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
         });
         return;
       }
-      ticket = await Ticket.findById(ticketId);
+      const query: any = { _id: ticketId };
+      if (eventId) {
+        query.event = eventId;
+      }
+      ticket = await Ticket.findOne(query);
     } else {
-      ticket = await Ticket.findOne({ invoiceNo });
+      const query: any = { invoiceNo };
+      if (eventId) {
+        query.event = eventId;
+      }
+      ticket = await Ticket.findOne(query);
     }
 
     // Check if ticket exists
     if (!ticket) {
+      const message = eventId 
+        ? 'Ticket not found for this event. This QR code may be for a different event.'
+        : 'Ticket not found';
       res.status(404).json({
         success: false,
-        message: 'Ticket not found',
+        message,
+      });
+      return;
+    }
+
+    // Check if already checked in
+    if (ticket.checkedIn) {
+      res.status(400).json({
+        success: false,
+        message: `${ticket.name} has already been checked in at ${ticket.checkInTime?.toLocaleString()}`,
       });
       return;
     }
@@ -109,7 +129,7 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
     // Return updated ticket
     res.status(200).json({
       success: true,
-      message: 'Check-in successful',
+      message: `Welcome ${ticket.name}! Check-in successful.`,
       data: {
         id: ticket._id,
         invoiceNo: ticket.invoiceNo,
@@ -124,6 +144,70 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
     res.status(500).json({
       success: false,
       message: 'Error checking in guest',
+    });
+  }
+};
+
+/**
+ * Get ticket details by invoice number without checking in
+ * @route POST /api/checkin/lookup
+ */
+export const lookupTicket = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const { invoiceNo, eventId } = req.body;
+
+    // Validate required fields
+    if (!invoiceNo) {
+      res.status(400).json({
+        success: false,
+        message: 'Invoice number is required',
+      });
+      return;
+    }
+
+    // Create search criteria
+    const searchCriteria: any = { invoiceNo };
+    
+    // Filter by event if provided
+    if (eventId) {
+      searchCriteria.event = eventId;
+    }
+
+    // Find the ticket
+    const ticket = await Ticket.findOne(searchCriteria);
+
+    // Check if ticket exists
+    if (!ticket) {
+      res.status(404).json({
+        success: false,
+        message: eventId 
+          ? 'Ticket not found for this event. Please verify the QR code and event.'
+          : 'Ticket not found',
+      });
+      return;
+    }
+
+    // Return ticket details
+    res.status(200).json({
+      success: true,
+      message: 'Ticket found',
+      data: {
+        id: ticket._id,
+        invoiceNo: ticket.invoiceNo,
+        name: ticket.name,
+        email: ticket.email,
+        phone: ticket.phone,
+        church: ticket.church,
+        checkedIn: ticket.checkedIn,
+        checkInTime: ticket.checkInTime,
+        event: ticket.event,
+      },
+    });
+  } catch (error) {
+    logger.error('Error looking up ticket', { error });
+    res.status(500).json({
+      success: false,
+      message: 'Error looking up ticket',
     });
   }
 };

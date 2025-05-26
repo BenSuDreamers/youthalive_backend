@@ -1,5 +1,5 @@
 import express from 'express';
-import { searchGuests, checkIn } from '../controllers/checkin.controller';
+import { searchGuests, checkIn, lookupTicket } from '../controllers/checkin.controller';
 import { authenticateJWT } from '../middlewares/auth.middleware';
 
 const router = express.Router();
@@ -17,5 +17,12 @@ router.get('/search', authenticateJWT, searchGuests);
  * @access Protected
  */
 router.post('/scan', authenticateJWT, checkIn);
+
+/**
+ * @route POST /api/checkin/lookup
+ * @desc Look up ticket details without checking in
+ * @access Protected
+ */
+router.post('/lookup', authenticateJWT, lookupTicket);
 
 export default router;

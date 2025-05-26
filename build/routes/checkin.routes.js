@@ -19,5 +19,11 @@ router.get('/search', auth_middleware_1.authenticateJWT, checkin_controller_1.se
  * @access Protected
  */
 router.post('/scan', auth_middleware_1.authenticateJWT, checkin_controller_1.checkIn);
+/**
+ * @route POST /api/checkin/lookup
+ * @desc Look up ticket details without checking in
+ * @access Protected
+ */
+router.post('/lookup', auth_middleware_1.authenticateJWT, checkin_controller_1.lookupTicket);
 exports.default = router;
 //# sourceMappingURL=checkin.routes.js.map
