@@ -64,6 +64,17 @@ export const listEvents = async (req: Request, res: Response): Promise<void> => 
  */
 export const webhookHandler = async (req: Request, res: Response): Promise<void> => {
   try {
+    // Log the entire request for debugging
+    logger.info('Full webhook request details', { 
+      headers: req.headers,
+      body: req.body,
+      query: req.query,
+      params: req.params,
+      method: req.method,
+      url: req.url,
+      rawBody: JSON.stringify(req.body)
+    });
+    
     logger.info('Received webhook payload', { body: req.body });
 
     // Parse the webhook data

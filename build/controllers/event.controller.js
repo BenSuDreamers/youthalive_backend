@@ -67,6 +67,16 @@ exports.listEvents = listEvents;
  */
 const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
+        // Log the entire request for debugging
+        logger_1.default.info('Full webhook request details', {
+            headers: req.headers,
+            body: req.body,
+            query: req.query,
+            params: req.params,
+            method: req.method,
+            url: req.url,
+            rawBody: JSON.stringify(req.body)
+        });
         logger_1.default.info('Received webhook payload', { body: req.body });
         // Parse the webhook data
         const submissionData = (0, jotform_service_1.parseWebhook)(req.body);
