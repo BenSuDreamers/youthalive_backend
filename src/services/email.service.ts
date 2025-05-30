@@ -100,10 +100,9 @@ export class EmailService {
               <td style="direction: ltr; font-size: 0px; padding: 0px 0; text-align: center;">
                 <div class="mj-column-per-100 mj-outlook-group-fix" style="font-size: 0px; text-align: left; direction: ltr; display: inline-block; vertical-align: top; width: 100%;">
                   <table style="vertical-align: top;" border="0" width="100%" cellspacing="0" cellpadding="0">
-                    <tbody>
-                      <tr>
+                    <tbody>                      <tr>
                         <td style="background: #ffffff; font-size: 0px; padding: 10px 0 0; word-break: break-word;" align="center">
-                          <img src="https://www.jotform.com/uploads/Benjamin_benjamin_SuBenjamin/form_files/JotformLogo.68381655b782e3.40221171.jpg" alt="" />
+                          <img src="https://www.jotform.com/uploads/Benjamin_benjamin_SuBenjamin/form_files/JotformLogo.68381655b782e3.40221171.jpg" alt="" style="max-width: 300px; width: 100%; height: auto;" />
                         </td>
                       </tr>
                     </tbody>
