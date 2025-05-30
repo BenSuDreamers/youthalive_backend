@@ -132,6 +132,10 @@ const parseWebhook = (payload) => {
                         // This is a form field
                         formFields[key] = value;
                     }
+                    else {
+                        // Copy all other fields too (including direct quantity, productDetails, etc.)
+                        formFields[key] = value;
+                    }
                 }
                 console.log('Extracted form fields:', JSON.stringify(formFields, null, 2));
                 // Parse the extracted fields
@@ -157,9 +161,79 @@ const parseWebhook = (payload) => {
 };
 exports.parseWebhook = parseWebhook;
 /**
+ * Parse product details from JotForm's "My Products" field
+ */
+const parseProductDetails = (productField) => {
+    let quantity = 1;
+    let productDetails = '';
+    let totalAmount = 0;
+    try {
+        console.log('Parsing product details from:', JSON.stringify(productField));
+        if (productField && typeof productField === 'object') {
+            // Check if it has paymentArray (typical format for Stadium 24 form)
+            if (productField.paymentArray) {
+                console.log('Found paymentArray:', productField.paymentArray);
+                try {
+                    const paymentData = JSON.parse(productField.paymentArray);
+                    console.log('Parsed paymentArray:', JSON.stringify(paymentData));
+                    if (paymentData.product && Array.isArray(paymentData.product)) {
+                        // Extract quantity from product string like "General Admission (Amount: 5.00 AUD, Quantity: 15)"
+                        const productString = paymentData.product[0] || '';
+                        console.log('Product string:', productString);
+                        const quantityMatch = productString.match(/Quantity:\s*(\d+)/);
+                        if (quantityMatch) {
+                            quantity = parseInt(quantityMatch[1], 10) || 1;
+                            console.log('Extracted quantity:', quantity);
+                        }
+                        productDetails = productString;
+                    }
+                    if (paymentData.total) {
+                        totalAmount = parseFloat(paymentData.total) || 0;
+                        console.log('Extracted total amount:', totalAmount);
+                    }
+                }
+                catch (parseError) {
+                    console.error('Error parsing paymentArray:', parseError);
+                }
+            }
+            // Check if it has the direct product data format
+            if (productField['1']) {
+                const productData = JSON.parse(productField['1']);
+                if (productData.quantity) {
+                    quantity = parseInt(productData.quantity, 10) || 1;
+                }
+                if (productData.name) {
+                    productDetails = `${productData.name} (Quantity: ${quantity})`;
+                }
+                if (productData.price) {
+                    totalAmount = productData.price * quantity;
+                }
+            }
+        }
+        else if (typeof productField === 'string') {
+            // Handle string format like "General Admission (Amount: 5.00 AUD, Quantity: 15)"
+            const quantityMatch = productField.match(/Quantity:\s*(\d+)/);
+            if (quantityMatch) {
+                quantity = parseInt(quantityMatch[1], 10) || 1;
+            }
+            const amountMatch = productField.match(/Amount:\s*([\d.]+)/);
+            if (amountMatch) {
+                const unitPrice = parseFloat(amountMatch[1]) || 0;
+                totalAmount = unitPrice * quantity;
+            }
+            productDetails = productField;
+        }
+    }
+    catch (error) {
+        logger_1.default.warn('Error parsing product details', { error, productField });
+    }
+    return { quantity, productDetails, totalAmount };
+};
+/**
  * Helper function to parse form fields and extract ticket data
  */
 const parseFormFields = (fields) => {
+    logger_1.default.info('Parsing form fields', { fields });
     const formId = fields.formID || fields.form_id || fields.formId || '';
     // Initialize default values
     let email = '';
@@ -167,6 +241,9 @@ const parseFormFields = (fields) => {
     let invoiceNo = `INV-${Date.now()}`;
     let phone = '';
     let church = '';
+    let quantity = 1;
+    let productDetails = '';
+    let totalAmount = 0;
     // FIRST: Try to extract from WebApp test form field names (the correct ones from logs)
     if (fields.q4_email4) {
         email = fields.q4_email4;
@@ -180,8 +257,20 @@ const parseFormFields = (fields) => {
     else if (fields.email) {
         email = fields.email;
     }
-    // Handle name from WebApp test form format
-    if (fields.q3_ltstronggtnameltstronggt) {
+    // Handle different form types for name
+    if (fields.q4_fullName || fields.q4_name) {
+        // Stadium 24 form format - field 4 is name
+        const nameValue = fields.q4_fullName || fields.q4_name;
+        if (typeof nameValue === 'object' && nameValue !== null) {
+            const nameObj = nameValue;
+            name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
+        }
+        else {
+            name = String(nameValue);
+        }
+    }
+    else if (fields.q3_ltstronggtnameltstronggt) {
+        // WebApp test form format
         if (typeof fields.q3_ltstronggtnameltstronggt === 'object' && fields.q3_ltstronggtnameltstronggt !== null) {
             const nameObj = fields.q3_ltstronggtnameltstronggt;
             name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
@@ -202,27 +291,33 @@ const parseFormFields = (fields) => {
     else if (fields['q3_name[first]'] && fields['q3_name[last]']) {
         name = `${fields['q3_name[first]']} ${fields['q3_name[last]']}`.trim();
     }
-    else if (fields.q4_fullName) {
-        name = fields.q4_fullName;
-    }
     else if (fields.name) {
         name = String(fields.name);
     }
-    // Handle invoice ID from WebApp test form format
-    if (fields.q11_invoiceId) {
-        invoiceNo = fields.q11_invoiceId;
+    // Handle Stadium 24 form email (field 5)
+    if (!email && fields.q5_email) {
+        email = fields.q5_email;
     }
-    else if (fields.q7_invoiceId) {
-        invoiceNo = fields.q7_invoiceId;
+    // Handle product details from field 3 (Stadium 24 form) or other product fields
+    if (fields.q3_products || fields.q3_myProducts || fields['3']) {
+        const productField = fields.q3_products || fields.q3_myProducts || fields['3'];
+        logger_1.default.info('Found product field', { productField });
+        const parsed = parseProductDetails(productField);
+        quantity = parsed.quantity;
+        productDetails = parsed.productDetails;
+        totalAmount = parsed.totalAmount;
+        logger_1.default.info('Parsed product details', { quantity, productDetails, totalAmount });
     }
-    else if (fields.q11_autoincrement) {
-        invoiceNo = fields.q11_autoincrement;
+    else {
+        logger_1.default.info('No product field found in submission');
     }
-    else if (fields.invoiceId) {
-        invoiceNo = fields.invoiceId;
+    // Handle phone numbers from different forms
+    if (fields.q7_phone || fields.q7_phoneNumber) {
+        // Stadium 24 form format
+        phone = fields.q7_phone || fields.q7_phoneNumber;
     }
-    // Handle phone from WebApp test form format
-    if (fields.q16_ltstronggtphoneNumberltstronggt) {
+    else if (fields.q16_ltstronggtphoneNumberltstronggt) {
+        // WebApp test form format
         phone = fields.q16_ltstronggtphoneNumberltstronggt;
     }
     else if (fields.q11_phoneNumber) {
@@ -240,8 +335,13 @@ const parseFormFields = (fields) => {
     else if (fields.phone) {
         phone = fields.phone;
     }
-    // Handle church/youth group from WebApp test form format
-    if (fields.q12_ltstronggtwhichYouth) {
+    // Handle church/youth group from different forms
+    if (fields.q10_church || fields.q10_youthGroup) {
+        // Stadium 24 form format  
+        church = fields.q10_church || fields.q10_youthGroup;
+    }
+    else if (fields.q12_ltstronggtwhichYouth) {
+        // WebApp test form format
         church = fields.q12_ltstronggtwhichYouth;
     }
     else if (fields.q9_youthGroup) {
@@ -252,6 +352,24 @@ const parseFormFields = (fields) => {
     }
     else if (fields.church || fields.youthGroup) {
         church = fields.church || fields.youthGroup;
+    }
+    // Handle invoice ID from different forms
+    if (fields.q38_invoiceId || fields['38']) {
+        // Stadium 24 form format
+        invoiceNo = fields.q38_invoiceId || fields['38'];
+    }
+    else if (fields.q11_invoiceId) {
+        // WebApp test form format
+        invoiceNo = fields.q11_invoiceId;
+    }
+    else if (fields.q7_invoiceId) {
+        invoiceNo = fields.q7_invoiceId;
+    }
+    else if (fields.q11_autoincrement) {
+        invoiceNo = fields.q11_autoincrement;
+    }
+    else if (fields.invoiceId) {
+        invoiceNo = fields.invoiceId;
     }
     // Clean invoice number (remove "# INV-" prefix if present)
     if (typeof invoiceNo === 'string' && invoiceNo.startsWith('# INV-')) {
@@ -266,7 +384,7 @@ const parseFormFields = (fields) => {
         invoiceNo = invoiceNo.substring(4);
     }
     logger_1.default.info('Final parsed submission data', {
-        formId, email, name, invoiceNo, phone, church
+        formId, email, name, invoiceNo, phone, church, quantity, productDetails, totalAmount
     });
     return {
         formId,
@@ -275,6 +393,9 @@ const parseFormFields = (fields) => {
         invoiceNo,
         phone,
         church,
+        quantity,
+        productDetails,
+        totalAmount,
     };
 };
 //# sourceMappingURL=jotform.service.js.map

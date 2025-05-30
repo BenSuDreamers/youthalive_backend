@@ -127,10 +127,9 @@ const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 email: submissionData.email,
                 tempPassword: tempPassword // Log temp password for debugging (remove in production)
             });
-        }
-        // Check if ticket already exists
+        } // Check if ticket already exists
         let ticket = yield ticket_model_1.Ticket.findOne({ invoiceNo: submissionData.invoiceNo });
-        if (!ticket) { // Create a new ticket
+        if (!ticket) { // Create a new ticket      
             ticket = new ticket_model_1.Ticket({
                 invoiceNo: submissionData.invoiceNo,
                 user: user._id,
@@ -140,6 +139,9 @@ const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 phone: submissionData.phone,
                 church: submissionData.church,
                 youthMinistry: submissionData.youthMinistry,
+                quantity: submissionData.quantity || 1,
+                productDetails: submissionData.productDetails,
+                totalAmount: submissionData.totalAmount
             });
             yield ticket.save(); // Generate QR code
             const qrDataUrl = yield (0, qr_service_1.generateQrCode)(submissionData.invoiceNo);

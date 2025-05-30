@@ -49,12 +49,14 @@ const searchGuests = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             .limit(50); // Limit results to prevent large queries    // Return results
         res.status(200).json({
             success: true,
-            count: tickets.length,
-            data: tickets.map((ticket) => ({
+            count: tickets.length, data: tickets.map((ticket) => ({
                 id: ticket._id,
                 invoiceNo: ticket.invoiceNo,
                 name: ticket.name,
                 email: ticket.email,
+                quantity: ticket.quantity,
+                productDetails: ticket.productDetails,
+                totalAmount: ticket.totalAmount,
                 checkedIn: ticket.checkedIn,
                 checkInTime: ticket.checkInTime,
             })),
@@ -131,8 +133,7 @@ const checkIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         // Update check-in status
         ticket.checkedIn = true;
         ticket.checkInTime = new Date();
-        yield ticket.save();
-        // Return updated ticket
+        yield ticket.save(); // Return updated ticket
         res.status(200).json({
             success: true,
             message: `Welcome ${ticket.name}! Check-in successful.`,
@@ -141,6 +142,9 @@ const checkIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 invoiceNo: ticket.invoiceNo,
                 name: ticket.name,
                 email: ticket.email,
+                quantity: ticket.quantity,
+                productDetails: ticket.productDetails,
+                totalAmount: ticket.totalAmount,
                 checkedIn: ticket.checkedIn,
                 checkInTime: ticket.checkInTime,
             },
@@ -192,13 +196,15 @@ const lookupTicket = (req, res) => __awaiter(void 0, void 0, void 0, function* (
         res.status(200).json({
             success: true,
             message: 'Ticket found',
-            data: {
-                id: ticket._id,
+            data: { id: ticket._id,
                 invoiceNo: ticket.invoiceNo,
                 name: ticket.name,
                 email: ticket.email,
                 phone: ticket.phone,
                 church: ticket.church,
+                quantity: ticket.quantity,
+                productDetails: ticket.productDetails,
+                totalAmount: ticket.totalAmount,
                 checkedIn: ticket.checkedIn,
                 checkInTime: ticket.checkInTime,
                 event: ticket.event,

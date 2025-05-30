@@ -40,10 +40,22 @@ const ticketSchema = new mongoose_1.Schema({
     church: {
         type: String,
         trim: true,
-    },
-    youthMinistry: {
+    }, youthMinistry: {
         type: String,
         trim: true,
+    },
+    quantity: {
+        type: Number,
+        min: 1,
+        default: 1,
+    },
+    productDetails: {
+        type: String,
+        trim: true,
+    },
+    totalAmount: {
+        type: Number,
+        min: 0,
     },
     checkInTime: {
         type: Date,
