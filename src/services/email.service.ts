@@ -9,6 +9,7 @@ export interface TicketEmailData {
   eventDate: string;
   invoiceNo: string;
   qrDataUrl: string;
+  chooseYour?: string;
 }
 
 export class EmailService {
@@ -123,11 +124,10 @@ export class EmailService {
                     <tbody>
                       <tr style="height: 426.93px;">
                         <td style="font-size: 0px; padding: 10px 25px; word-break: break-word; height: 426.93px;" align="left">
-                          <div style="font-family: Inter, sans-serif; font-size: 14px; line-height: 1.5; text-align: left; color: #333333;">
-                            <p style="display: block; margin: 13px 0px;">Hi&nbsp;<strong>${ticketData.name.split(' ')[0]},</strong></p>
+                          <div style="font-family: Inter, sans-serif; font-size: 14px; line-height: 1.5; text-align: left; color: #333333;">                            <p style="display: block; margin: 13px 0px;">Hi&nbsp;<strong>${ticketData.name.split(' ')[0]},</strong></p>
                             <p style="display: block; margin: 13px 0px;">Thank you for registering for STADIUM 25!</p>
                             <p style="display: block; margin: 13px 0px;">This is your confirmation email to acknowledge that your registration has been confirmed.</p>
-                            <p style="display: block; margin: 13px 0px;"><strong>Date:</strong> ${ticketData.eventDate}</p>
+                            <p style="display: block; margin: 13px 0px;"><strong>Date:</strong> ${ticketData.chooseYour === 'Friday' ? 'Friday August 8 2025' : 'Saturday August 9 2025'}</p>
                             <p style="display: block; margin: 13px 0px;"><strong>Time:</strong>&nbsp;5:30pm - Sign-In&nbsp;<strong>//</strong>&nbsp;6:30pm - Doors Open</p>
                             <p style="display: block; margin: 13px 0px;"><strong>Location:</strong>&nbsp;Futures Church Paradise</p>
                             <p style="display: block; margin: 13px 0px;"><strong>Parking is limited</strong>&nbsp;so we encourage you to either travel with your youth ministry or take public transport.</p>
