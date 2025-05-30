@@ -102,7 +102,7 @@ export class EmailService {
                   <table style="vertical-align: top;" border="0" width="100%" cellspacing="0" cellpadding="0">
                     <tbody>                      <tr>
                         <td style="background: #ffffff; font-size: 0px; padding: 10px 0 0; word-break: break-word;" align="center">
-                          <img src="https://www.jotform.com/uploads/Benjamin_benjamin_SuBenjamin/form_files/JotformLogo.68381655b782e3.40221171.jpg" alt="" style="max-width: 300px; width: 100%; height: auto;" />
+                          <img src="https://www.jotform.com/uploads/Benjamin_benjamin_SuBenjamin/form_files/JotformLogo.68381655b782e3.40221171.jpg" alt="" style="max-width: 550px; width: 100%; height: auto;" />
                         </td>
                       </tr>
                     </tbody>
