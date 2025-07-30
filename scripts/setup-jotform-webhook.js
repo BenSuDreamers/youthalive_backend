@@ -154,7 +154,7 @@ class JotformWebhookSetup {
 async function setupYouthAliveWebhooks() {
   const apiKey = process.env.JOTFORM_API_KEY;
   const webhookUrl = process.env.FRONTEND_URL ? 
-    process.env.FRONTEND_URL.replace('5000', '3000') + '/api/webhooks/jotform' :
+    process.env.FRONTEND_URL.replace('5001', '3000') + '/api/webhooks/jotform' :
     'http://localhost:3000/api/webhooks/jotform';
   
   if (!apiKey) {
