@@ -51,7 +51,7 @@ const config = {
         fromName: process.env.FROM_NAME,
     },
     // Frontend URL
-    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:5001',
+    frontendUrl: process.env.FRONTEND_URL || 'http://localhost:3000',
 };
 exports.default = config;
 //# sourceMappingURL=index.js.map
