@@ -189,25 +189,42 @@ const parseProductDetails = (productField: any): { quantity: number; productDeta
   let totalAmount = 0;
 
   try {
-    console.log('Parsing product details from:', JSON.stringify(productField));
+    console.log('parseProductDetails: Received field:', JSON.stringify(productField, null, 2));
     
     if (productField && typeof productField === 'object') {
-      // Check if it has paymentArray (typical format for Stadium 24 form)
+      // Check if it has paymentArray (typical format for Stadium forms)
       if (productField.paymentArray) {
-        console.log('Found paymentArray:', productField.paymentArray);
+        console.log('parseProductDetails: Found paymentArray:', productField.paymentArray);
         try {
           const paymentData = JSON.parse(productField.paymentArray);
-          console.log('Parsed paymentArray:', JSON.stringify(paymentData));
+          console.log('parseProductDetails: Parsed paymentArray:', JSON.stringify(paymentData, null, 2));
           
           if (paymentData.product && Array.isArray(paymentData.product)) {
             // Extract quantity from product string like "General Admission (Amount: 5.00 AUD, Quantity: 15)"
             const productString = paymentData.product[0] || '';
-            console.log('Product string:', productString);
+            console.log('parseProductDetails: Product string:', productString);
             
-            const quantityMatch = productString.match(/Quantity:\s*(\d+)/);
-            if (quantityMatch) {
-              quantity = parseInt(quantityMatch[1], 10) || 1;
-              console.log('Extracted quantity:', quantity);
+            // Try multiple regex patterns to be more flexible
+            const quantityPatterns = [
+              /Quantity:\s*(\d+)/i,
+              /Qty:\s*(\d+)/i,
+              /quantity\s*=\s*(\d+)/i,
+              /qty\s*=\s*(\d+)/i
+            ];
+            
+            let quantityFound = false;
+            for (const pattern of quantityPatterns) {
+              const quantityMatch = productString.match(pattern);
+              if (quantityMatch) {
+                quantity = parseInt(quantityMatch[1], 10) || 1;
+                console.log(`parseProductDetails: ✅ Extracted quantity ${quantity} using pattern ${pattern}`);
+                quantityFound = true;
+                break;
+              }
+            }
+            
+            if (!quantityFound) {
+              console.log(`parseProductDetails: ❌ No quantity found in product string: "${productString}"`);
             }
             
             productDetails = productString;
@@ -215,31 +232,74 @@ const parseProductDetails = (productField: any): { quantity: number; productDeta
           
           if (paymentData.total) {
             totalAmount = parseFloat(paymentData.total) || 0;
-            console.log('Extracted total amount:', totalAmount);
+            console.log('parseProductDetails: Extracted total amount:', totalAmount);
           }
         } catch (parseError) {
-          console.error('Error parsing paymentArray:', parseError);
+          console.error('parseProductDetails: Error parsing paymentArray:', parseError);
         }
       }
       
-      // Check if it has the direct product data format
-      if (productField['1']) {
-        const productData = JSON.parse(productField['1']);
-        if (productData.quantity) {
-          quantity = parseInt(productData.quantity, 10) || 1;
+      // Check for direct product data format (alternative structure)
+      if (productField['1'] || productField['0']) {
+        console.log('parseProductDetails: Found numbered product data format');
+        try {
+          const productData = JSON.parse(productField['1'] || productField['0']);
+          console.log('parseProductDetails: Parsed product data:', JSON.stringify(productData, null, 2));
+          
+          if (productData.quantity) {
+            quantity = parseInt(productData.quantity, 10) || 1;
+            console.log('parseProductDetails: ✅ Extracted quantity from direct field:', quantity);
+          }
+          if (productData.name) {
+            productDetails = `${productData.name} (Quantity: ${quantity})`;
+          }
+          if (productData.price) {
+            totalAmount = productData.price * quantity;
+          }
+        } catch (parseError) {
+          console.error('parseProductDetails: Error parsing numbered product data:', parseError);
         }
-        if (productData.name) {
-          productDetails = `${productData.name} (Quantity: ${quantity})`;
-        }
-        if (productData.price) {
-          totalAmount = productData.price * quantity;
+      }
+      
+      // Check for answer field structure (JotForm submission format)
+      if (productField.answer) {
+        console.log('parseProductDetails: Found answer field structure');
+        
+        // Check for paymentArray in answer
+        if (productField.answer.paymentArray) {
+          console.log('parseProductDetails: Found paymentArray in answer field');
+          try {
+            const paymentData = JSON.parse(productField.answer.paymentArray);
+            console.log('parseProductDetails: Parsed answer paymentArray:', JSON.stringify(paymentData, null, 2));
+            
+            if (paymentData.product && Array.isArray(paymentData.product)) {
+              const productString = paymentData.product[0] || '';
+              console.log('parseProductDetails: Product string from answer:', productString);
+              
+              const quantityMatch = productString.match(/Quantity:\s*(\d+)/i);
+              if (quantityMatch) {
+                quantity = parseInt(quantityMatch[1], 10) || 1;
+                console.log('parseProductDetails: ✅ Extracted quantity from answer field:', quantity);
+              }
+              
+              productDetails = productString;
+            }
+            
+            if (paymentData.total) {
+              totalAmount = parseFloat(paymentData.total) || 0;
+            }
+          } catch (parseError) {
+            console.error('parseProductDetails: Error parsing answer paymentArray:', parseError);
+          }
         }
       }
     } else if (typeof productField === 'string') {
+      console.log('parseProductDetails: Processing string format:', productField);
       // Handle string format like "General Admission (Amount: 5.00 AUD, Quantity: 15)"
-      const quantityMatch = productField.match(/Quantity:\s*(\d+)/);
+      const quantityMatch = productField.match(/Quantity:\s*(\d+)/i);
       if (quantityMatch) {
         quantity = parseInt(quantityMatch[1], 10) || 1;
+        console.log('parseProductDetails: ✅ Extracted quantity from string:', quantity);
       }
       
       const amountMatch = productField.match(/Amount:\s*([\d.]+)/);
@@ -251,9 +311,11 @@ const parseProductDetails = (productField: any): { quantity: number; productDeta
       productDetails = productField;
     }
   } catch (error) {
-    logger.warn('Error parsing product details', { error, productField });
+    logger.warn('parseProductDetails: Error parsing product details', { error, productField });
+    console.error('parseProductDetails: Exception:', error);
   }
 
+  console.log(`parseProductDetails: Final result - quantity: ${quantity}, productDetails: "${productDetails}", totalAmount: ${totalAmount}`);
   return { quantity, productDetails, totalAmount };
 };
 
@@ -285,7 +347,16 @@ const parseFormFields = (fields: any): ParsedSubmission => {
   }
 
   // Handle different form types for name
-  if (fields.q4_fullName || fields.q4_name) {
+  // Stadium 25 form uses Q3 for name
+  if (fields.q3_ltstronggtnameltstronggt) {
+    // Stadium 25 form format - field 3 is name
+    if (typeof fields.q3_ltstronggtnameltstronggt === 'object' && fields.q3_ltstronggtnameltstronggt !== null) {
+      const nameObj = fields.q3_ltstronggtnameltstronggt as any;
+      name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
+    } else {
+      name = String(fields.q3_ltstronggtnameltstronggt);
+    }
+  } else if (fields.q4_fullName || fields.q4_name) {
     // Stadium 24 form format - field 4 is name
     const nameValue = fields.q4_fullName || fields.q4_name;
     if (typeof nameValue === 'object' && nameValue !== null) {
@@ -294,10 +365,9 @@ const parseFormFields = (fields: any): ParsedSubmission => {
     } else {
       name = String(nameValue);
     }
-  } else if (fields.q3_ltstronggtnameltstronggt) {
-    // WebApp test form format
-    if (typeof fields.q3_ltstronggtnameltstronggt === 'object' && fields.q3_ltstronggtnameltstronggt !== null) {
-      const nameObj = fields.q3_ltstronggtnameltstronggt as any;
+  } else if (fields.q3_name) {
+    if (typeof fields.q3_name === 'object' && fields.q3_name !== null) {
+      const nameObj = fields.q3_name as any;
       name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
     } else {
       name = String(fields.q3_ltstronggtnameltstronggt);
@@ -315,13 +385,20 @@ const parseFormFields = (fields: any): ParsedSubmission => {
     name = String(fields.name);
   }
 
-  // Handle Stadium 24 form email (field 5)
-  if (!email && fields.q5_email) {
+  // Handle Stadium 25 form email (field 4)
+  if (fields.q4_email4) {
+    email = fields.q4_email4;
+  } else if (fields.q5_email) {
     email = fields.q5_email;
+  } else if (fields.q4_email) {
+    email = fields.q4_email;
+  } else if (fields.email) {
+    email = fields.email;
   }
-  // Handle product details from field 3 (Stadium 24 form) or other product fields
-  if (fields.q3_products || fields.q3_myProducts || fields['3']) {
-    const productField = fields.q3_products || fields.q3_myProducts || fields['3'];
+
+  // Handle product details - Stadium 25 uses Q9, other forms use Q3
+  if (fields.q9_myProducts || fields.q3_products || fields.q3_myProducts || fields['9'] || fields['3']) {
+    const productField = fields.q9_myProducts || fields.q3_products || fields.q3_myProducts || fields['9'] || fields['3'];
     logger.info('Found product field', { productField });
     
     const parsed = parseProductDetails(productField);
@@ -331,16 +408,20 @@ const parseFormFields = (fields: any): ParsedSubmission => {
     
     logger.info('Parsed product details', { quantity, productDetails, totalAmount });
   } else {
-    logger.info('No product field found in submission');
+    logger.info('No product field found in submission', { 
+      availableFields: Object.keys(fields),
+      searchedFields: ['q9_myProducts', 'q3_products', 'q3_myProducts', '9', '3']
+    });
   }
 
   // Handle phone numbers from different forms
-  if (fields.q7_phone || fields.q7_phoneNumber) {
+  // Stadium 25 uses Q16, other forms use Q7, Q11, etc.
+  if (fields.q16_ltstronggtphoneNumberltstronggt) {
+    // Stadium 25 form format
+    phone = fields.q16_ltstronggtphoneNumberltstronggt;
+  } else if (fields.q7_phone || fields.q7_phoneNumber) {
     // Stadium 24 form format
     phone = fields.q7_phone || fields.q7_phoneNumber;
-  } else if (fields.q16_ltstronggtphoneNumberltstronggt) {
-    // WebApp test form format
-    phone = fields.q16_ltstronggtphoneNumberltstronggt;
   } else if (fields.q11_phoneNumber) {
     if (typeof fields.q11_phoneNumber === 'object' && fields.q11_phoneNumber !== null) {
       const phoneObj = fields.q11_phoneNumber as any;
@@ -355,7 +436,11 @@ const parseFormFields = (fields: any): ParsedSubmission => {
   }
 
   // Handle church/youth group from different forms
-  if (fields.q10_church || fields.q10_youthGroup) {
+  // Stadium 25 uses Q23, other forms use Q10, Q12, Q9
+  if (fields.q23_ltstronggtwhichYouth23) {
+    // Stadium 25 form format  
+    church = fields.q23_ltstronggtwhichYouth23;
+  } else if (fields.q10_church || fields.q10_youthGroup) {
     // Stadium 24 form format  
     church = fields.q10_church || fields.q10_youthGroup;
   } else if (fields.q12_ltstronggtwhichYouth) {
@@ -370,12 +455,13 @@ const parseFormFields = (fields: any): ParsedSubmission => {
   }
 
   // Handle invoice ID from different forms
-  if (fields.q38_invoiceId || fields['38']) {
+  // Stadium 25 uses Q11, Stadium 24 uses Q38
+  if (fields.q11_invoiceId) {
+    // Stadium 25 form format
+    invoiceNo = fields.q11_invoiceId;
+  } else if (fields.q38_invoiceId || fields['38']) {
     // Stadium 24 form format
     invoiceNo = fields.q38_invoiceId || fields['38'];
-  } else if (fields.q11_invoiceId) {
-    // WebApp test form format
-    invoiceNo = fields.q11_invoiceId;
   } else if (fields.q7_invoiceId) {
     invoiceNo = fields.q7_invoiceId;
   } else if (fields.q11_autoincrement) {
