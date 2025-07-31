@@ -7,8 +7,8 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') });
 
 async function debugJotformFields() {
   try {
-    // Check Stadium 24 form (the one with 1000 submissions)
-    const formId = '241078261192858';
+    // Check Stadium 25 form
+    const formId = '251481969313867';
     console.log(`\n🔍 Debugging form ${formId}...`);
     
     // Get form details
