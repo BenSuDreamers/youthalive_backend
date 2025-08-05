@@ -144,9 +144,19 @@ export const webhookHandler = async (req: Request, res: Response): Promise<void>
         youthMinistry: submissionData.youthMinistry,
         quantity: submissionData.quantity || 1,
         productDetails: submissionData.productDetails,
-        totalAmount: submissionData.totalAmount
+        totalAmount: submissionData.totalAmount,
+        eventDate: submissionData.eventDate, // Save the full event date
+        chooseYour: submissionData.chooseYour // Save the parsed day selection
       });
-      await ticket.save();      // Generate QR code
+      await ticket.save();      
+      
+      logger.info('Created new ticket with complete data', { 
+        invoiceNo: ticket.invoiceNo,
+        eventDate: ticket.eventDate,
+        chooseYour: ticket.chooseYour
+      });
+
+      // Generate QR code
       const qrDataUrl = await generateQrCode(submissionData.invoiceNo);
 
       // Send confirmation email with QR code

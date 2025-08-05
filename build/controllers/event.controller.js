@@ -141,9 +141,17 @@ const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 youthMinistry: submissionData.youthMinistry,
                 quantity: submissionData.quantity || 1,
                 productDetails: submissionData.productDetails,
-                totalAmount: submissionData.totalAmount
+                totalAmount: submissionData.totalAmount,
+                eventDate: submissionData.eventDate, // Save the full event date
+                chooseYour: submissionData.chooseYour // Save the parsed day selection
             });
-            yield ticket.save(); // Generate QR code
+            yield ticket.save();
+            logger_1.default.info('Created new ticket with complete data', {
+                invoiceNo: ticket.invoiceNo,
+                eventDate: ticket.eventDate,
+                chooseYour: ticket.chooseYour
+            });
+            // Generate QR code
             const qrDataUrl = yield (0, qr_service_1.generateQrCode)(submissionData.invoiceNo);
             // Send confirmation email with QR code
             yield email_service_1.emailService.sendTicketEmail({

@@ -57,6 +57,14 @@ const ticketSchema = new mongoose_1.Schema({
         type: Number,
         min: 0,
     },
+    eventDate: {
+        type: String,
+        trim: true,
+    },
+    chooseYour: {
+        type: String,
+        trim: true,
+    },
     checkInTime: {
         type: Date,
     },

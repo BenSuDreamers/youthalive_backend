@@ -16,6 +16,8 @@ export interface ITicket extends Document {
   quantity?: number;
   productDetails?: string;
   totalAmount?: number;
+  eventDate?: string;  // Added for Stadium 25 Friday/Saturday selection
+  chooseYour?: string; // Added for parsed day selection
   checkInTime?: Date;
   createdAt: Date;
   updatedAt: Date;
@@ -75,6 +77,14 @@ const ticketSchema = new Schema<ITicket>({
   totalAmount: {
     type: Number,
     min: 0,
+  },
+  eventDate: {
+    type: String,
+    trim: true,
+  },
+  chooseYour: {
+    type: String,
+    trim: true,
   },
   checkInTime: {
     type: Date,

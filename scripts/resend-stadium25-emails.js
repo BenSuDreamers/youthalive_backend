@@ -56,13 +56,33 @@ async function resendStadium25Emails() {
     
     console.log('\n📧 STEP 3: Processing tickets using webhook-to-email pipeline');
     console.log('This uses the same logic that was successfully tested');
+    console.log('🎯 PRIORITY: Focus on tickets with missing or incorrect eventDate data');
     
     for (let i = 0; i < tickets.length; i++) {
       const ticket = tickets[i];
       
       console.log(`\n[${i + 1}/${tickets.length}] Processing ticket for ${ticket.email}`);
       console.log(`  Invoice: ${ticket.invoiceNo} | Name: ${ticket.name}`);
+      console.log(`  Database eventDate: "${ticket.eventDate || 'MISSING'}"`);
       
+      // Skip tickets that already have correct eventDate and were created recently
+      const hasValidEventDate = ticket.eventDate && 
+        (ticket.eventDate.includes('Friday') || ticket.eventDate.includes('Saturday'));
+      
+      const isRecentTicket = ticket.createdAt && 
+        new Date(ticket.createdAt) > new Date('2025-08-01'); // Recent tickets more likely to be correct
+        
+      if (hasValidEventDate && isRecentTicket) {
+        console.log(`  ⏭️  SKIPPING: Has valid eventDate "${ticket.eventDate}" and is recent`);
+        console.log(`  💡 User should have received correct email originally`);
+        continue;
+      }
+      
+      if (!hasValidEventDate) {
+        console.log(`  🎯 PROCESSING: Missing or invalid eventDate - needs correction`);
+      } else {
+        console.log(`  🎯 PROCESSING: Older ticket - may need resend with corrected QR codes`);
+      }
       try {
         // STEP 1: Simulate webhook parsing to get chooseYour field
         console.log('  🔄 STEP 1: Parsing ticket data (simulating webhook)...');
