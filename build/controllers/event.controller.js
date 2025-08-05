@@ -152,7 +152,8 @@ const webhookHandler = (req, res) => __awaiter(void 0, void 0, void 0, function*
                 eventTitle: event.title,
                 eventDate: submissionData.eventDate || event.startTime.toLocaleDateString(),
                 invoiceNo: submissionData.invoiceNo,
-                qrDataUrl: qrDataUrl
+                qrDataUrl: qrDataUrl,
+                chooseYour: submissionData.chooseYour
             });
         }
         // Return success response

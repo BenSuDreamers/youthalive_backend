@@ -27,6 +27,7 @@ export interface ParsedSubmission {
   quantity?: number;
   productDetails?: string;
   totalAmount?: number;
+  chooseYour?: string; // Stadium 25 field for Friday/Saturday selection
 }
 
 /**
@@ -348,8 +349,16 @@ const parseFormFields = (fields: any): ParsedSubmission => {
 
   // Handle different form types for name
   // Stadium 25 form uses Q3 for name
-  if (fields.q3_ltstronggtnameltstronggt) {
+  if (fields.q3_name) {
     // Stadium 25 form format - field 3 is name
+    if (typeof fields.q3_name === 'object' && fields.q3_name !== null) {
+      const nameObj = fields.q3_name as any;
+      name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
+    } else {
+      name = String(fields.q3_name);
+    }
+  } else if (fields.q3_ltstronggtnameltstronggt) {
+    // Alternative Stadium 25 format
     if (typeof fields.q3_ltstronggtnameltstronggt === 'object' && fields.q3_ltstronggtnameltstronggt !== null) {
       const nameObj = fields.q3_ltstronggtnameltstronggt as any;
       name = `${nameObj.first || ''} ${nameObj.last || ''}`.trim();
@@ -386,19 +395,17 @@ const parseFormFields = (fields: any): ParsedSubmission => {
   }
 
   // Handle Stadium 25 form email (field 4)
-  if (fields.q4_email4) {
-    email = fields.q4_email4;
+  if (fields.q4_email || fields.q4_email4) {
+    email = fields.q4_email || fields.q4_email4;
   } else if (fields.q5_email) {
     email = fields.q5_email;
-  } else if (fields.q4_email) {
-    email = fields.q4_email;
   } else if (fields.email) {
     email = fields.email;
   }
 
   // Handle product details - Stadium 25 uses Q9, other forms use Q3
-  if (fields.q9_myProducts || fields.q3_products || fields.q3_myProducts || fields['9'] || fields['3']) {
-    const productField = fields.q9_myProducts || fields.q3_products || fields.q3_myProducts || fields['9'] || fields['3'];
+  if (fields.q9_myProducts || fields.q9_products || fields.q3_products || fields.q3_myProducts || fields['9'] || fields['3']) {
+    const productField = fields.q9_myProducts || fields.q9_products || fields.q3_products || fields.q3_myProducts || fields['9'] || fields['3'];
     logger.info('Found product field', { productField });
     
     const parsed = parseProductDetails(productField);
@@ -410,15 +417,15 @@ const parseFormFields = (fields: any): ParsedSubmission => {
   } else {
     logger.info('No product field found in submission', { 
       availableFields: Object.keys(fields),
-      searchedFields: ['q9_myProducts', 'q3_products', 'q3_myProducts', '9', '3']
+      searchedFields: ['q9_myProducts', 'q9_products', 'q3_products', 'q3_myProducts', '9', '3']
     });
   }
 
   // Handle phone numbers from different forms
   // Stadium 25 uses Q16, other forms use Q7, Q11, etc.
-  if (fields.q16_ltstronggtphoneNumberltstronggt) {
+  if (fields.q16_phone || fields.q16_ltstronggtphoneNumberltstronggt) {
     // Stadium 25 form format
-    phone = fields.q16_ltstronggtphoneNumberltstronggt;
+    phone = fields.q16_phone || fields.q16_ltstronggtphoneNumberltstronggt;
   } else if (fields.q7_phone || fields.q7_phoneNumber) {
     // Stadium 24 form format
     phone = fields.q7_phone || fields.q7_phoneNumber;
@@ -437,9 +444,9 @@ const parseFormFields = (fields: any): ParsedSubmission => {
 
   // Handle church/youth group from different forms
   // Stadium 25 uses Q23, other forms use Q10, Q12, Q9
-  if (fields.q23_ltstronggtwhichYouth23) {
+  if (fields.q23_church || fields.q23_ltstronggtwhichYouth23) {
     // Stadium 25 form format  
-    church = fields.q23_ltstronggtwhichYouth23;
+    church = fields.q23_church || fields.q23_ltstronggtwhichYouth23;
   } else if (fields.q10_church || fields.q10_youthGroup) {
     // Stadium 24 form format  
     church = fields.q10_church || fields.q10_youthGroup;
@@ -483,8 +490,44 @@ const parseFormFields = (fields: any): ParsedSubmission => {
   if (typeof invoiceNo === 'string' && invoiceNo.startsWith('INV-')) {
     invoiceNo = invoiceNo.substring(4);
   }
+
+  // Handle Stadium 25 specific field - "Choose your night" (Friday/Saturday)
+  let chooseYour = '';
+  if (fields.q19_eventDate) {
+    // Stadium 25 form format - field 19 contains the event date/night selection
+    const eventDate = fields.q19_eventDate;
+    if (typeof eventDate === 'string') {
+      if (eventDate.toLowerCase().includes('friday')) {
+        chooseYour = 'Friday';
+      } else if (eventDate.toLowerCase().includes('saturday')) {
+        chooseYour = 'Saturday';  
+      }
+    }
+  } else if (fields.q4_chooseYour) {
+    // Alternative format (test forms)
+    chooseYour = fields.q4_chooseYour;
+  } else if (fields['19'] && typeof fields['19'] === 'string') {
+    // Numbered field format
+    const eventDate = fields['19'];
+    if (eventDate.toLowerCase().includes('friday')) {
+      chooseYour = 'Friday';
+    } else if (eventDate.toLowerCase().includes('saturday')) {
+      chooseYour = 'Saturday';
+    }
+  } else if (fields['4'] && fields['4'].answer) {
+    // Alternative format using numbered fields
+    chooseYour = fields['4'].answer;
+  }
+
+  logger.info('Parsed chooseYour field', { 
+    q19_eventDate: fields.q19_eventDate,
+    field19: fields['19'], 
+    q4_chooseYour: fields.q4_chooseYour,
+    chooseYour 
+  });
+
   logger.info('Final parsed submission data', {
-    formId, email, name, invoiceNo, phone, church, quantity, productDetails, totalAmount
+    formId, email, name, invoiceNo, phone, church, quantity, productDetails, totalAmount, chooseYour
   });
     return {
     formId,
@@ -496,5 +539,6 @@ const parseFormFields = (fields: any): ParsedSubmission => {
     quantity,
     productDetails,
     totalAmount,
+    chooseYour,
   };
 };

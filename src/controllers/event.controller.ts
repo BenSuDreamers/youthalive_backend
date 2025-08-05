@@ -156,7 +156,8 @@ export const webhookHandler = async (req: Request, res: Response): Promise<void>
         eventTitle: event.title,
         eventDate: submissionData.eventDate || event.startTime.toLocaleDateString(),
         invoiceNo: submissionData.invoiceNo,
-        qrDataUrl: qrDataUrl
+        qrDataUrl: qrDataUrl,
+        chooseYour: submissionData.chooseYour
       });
     }
 
