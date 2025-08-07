@@ -23,12 +23,13 @@ const generateQrCode = (data) => __awaiter(void 0, void 0, void 0, function* () 
         const qrOptions = {
             errorCorrectionLevel: 'M',
             type: 'image/png',
-            width: 300,
-            margin: 2,
+            width: 200, // Reduced from 300 for better email compatibility
+            margin: 1, // Reduced margin
             color: {
                 dark: '#000000',
                 light: '#FFFFFF'
-            }
+            },
+            quality: 0.8 // Add quality setting for smaller file size
         };
         const dataUrl = yield qrcode_1.default.toDataURL(data, qrOptions);
         logger_1.default.info('QR code generated successfully', { dataLength: data.length });

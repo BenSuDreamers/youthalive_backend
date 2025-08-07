@@ -48,13 +48,13 @@ export class EmailService {
             filename: 'qrcode.png',
             content: qrBuffer,
             contentType: 'image/png',
-            cid: 'qrcode', // Same cid value as referenced in the HTML
+            cid: 'qrcode', // CID reference for embedded image
           },
           {
             filename: 'stadium25-ticket-qr.png',
             content: qrBuffer,
             contentType: 'image/png',
-            // No CID - this creates a downloadable attachment as backup
+            // No CID - downloadable attachment as backup
           },
         ],
       };
@@ -139,31 +139,35 @@ export class EmailService {
                             <p style="display: block; margin: 13px 0px;"><strong>Parking is limited</strong>&nbsp;so we encourage you to either travel with your youth ministry or take public transport.</p>
                             <p style="display: block; margin: 13px 0px;"><strong>Check-in:&nbsp;</strong>Alternatively to a ticket system, this year at check in, be ready with your QR code attached below.</p>
                             
-                            <!-- Primary QR Code (CID embedded) -->
+                            <!-- QR Code Section with Multiple Display Methods -->
                             <div style="text-align: center; margin: 20px 0; padding: 15px; background-color: #f8f9fa; border-radius: 8px;">
                               <p style="margin: 5px 0px; font-weight: bold; color: #0a1551;">Your Check-in QR Code:</p>
+                              
+                              <!-- Method 1: CID embedded image (for clients that support it) -->
                               <img src="cid:qrcode" alt="QR Code for ${ticketData.invoiceNo}" style="width: 200px; height: 200px; border: 2px solid #0a1551; border-radius: 8px; display: block; margin: 10px auto; background: white; padding: 10px;">
+                              
+                              <!-- Method 2: Fallback base64 with smaller size (if CID fails) -->
+                              <div style="margin: 10px 0;">
+                                <img src="${ticketData.qrDataUrl}" alt="QR Code Backup for ${ticketData.invoiceNo}" style="width: 150px; height: 150px; border: 1px solid #ccc; border-radius: 4px; display: none; margin: 0 auto;">
+                              </div>
+                              
                               <p style="margin: 5px 0px; font-size: 12px; color: #666;">Scan this code at Stadium 25 check-in</p>
                               <p style="margin: 5px 0px; font-size: 11px; color: #999;">Invoice: ${ticketData.invoiceNo}</p>
                             </div>
                             
-                            <!-- Fallback message if QR not visible -->
-                            <div style="text-align: center; margin: 10px 0; padding: 10px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
-                              <p style="margin: 0px; font-size: 12px; color: #856404;">
-                                <strong>Can't see the QR code above?</strong><br>
-                                1. Check if images are enabled in your email client<br>
-                                2. Download the "stadium25-ticket-qr.png" attachment<br>
-                                3. Show the downloaded image at check-in
+                            <!-- Enhanced fallback message -->
+                            <div style="text-align: center; margin: 10px 0; padding: 15px; background-color: #fff3cd; border: 1px solid #ffeaa7; border-radius: 4px;">
+                              <p style="margin: 0px 0px 10px 0px; font-size: 14px; color: #856404; font-weight: bold;">
+                                Can't see the QR code above?
                               </p>
-                            </div>
-                            
-                            <!-- Base64 fallback for email clients that don't support CID -->
-                            <div style="text-align: center; margin: 20px 0;">
-                              <details style="cursor: pointer;">
-                                <summary style="color: #0a1551; font-weight: bold; margin-bottom: 10px;">Alternative QR Code (click to expand)</summary>
-                                <img src="${ticketData.qrDataUrl}" alt="QR Code Fallback for ${ticketData.invoiceNo}" style="width: 150px; height: 150px; border: 1px solid #ddd; border-radius: 4px; margin: 10px auto; display: block;">
-                                <p style="font-size: 11px; color: #666;">Use this QR code if the one above doesn't display</p>
-                              </details>
+                              <p style="margin: 5px 0px; font-size: 12px; color: #856404;">
+                                📧 <strong>IMPORTANT:</strong> Check your email attachments<br>
+                                📎 Download: "stadium25-ticket-qr.png"<br>
+                                📱 Show the downloaded image at Stadium 25 check-in
+                              </p>
+                              <p style="margin: 10px 0px 0px 0px; font-size: 11px; color: #856404;">
+                                💡 Tip: Enable "Show Images" in your email client settings
+                              </p>
                             </div>
                             <p style="display: block; margin: 13px 0px;"><strong>Order details: ${ticketData.invoiceNo}</strong></p>
                             <p style="display: block; margin: 13px 0px;">Please find attached to this email a receipt for your order.</p>

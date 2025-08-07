@@ -9,12 +9,13 @@ export const generateQrCode = async (data: string): Promise<string> => {
     const qrOptions = {
       errorCorrectionLevel: 'M' as const,
       type: 'image/png' as const,
-      width: 300,
-      margin: 2,
+      width: 200, // Reduced from 300 for better email compatibility
+      margin: 1,  // Reduced margin
       color: {
         dark: '#000000',
         light: '#FFFFFF'
-      }
+      },
+      quality: 0.8 // Add quality setting for smaller file size
     };
     
     const dataUrl = await QRCode.toDataURL(data, qrOptions);
