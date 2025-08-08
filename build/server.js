@@ -23,7 +23,6 @@ const mongooseOptions = {
     maxPoolSize: 10, // Maximum number of connections in the pool
     minPoolSize: 2, // Minimum number of connections in the pool
     maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
-    bufferMaxEntries: 0, // Disable mongoose buffering for immediate errors
     retryWrites: true, // Retry failed writes
     retryReads: true, // Retry failed reads
 };
