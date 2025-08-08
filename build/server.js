@@ -15,10 +15,17 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const mongoose_1 = __importDefault(require("mongoose"));
 const config_1 = __importDefault(require("./config"));
 const app_1 = __importDefault(require("./app"));
-// MongoDB connection options
+// MongoDB connection options optimized for high-load scenarios
 const mongooseOptions = {
     autoIndex: true,
-    serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+    serverSelectionTimeoutMS: 15000, // Increased timeout for high load
+    socketTimeoutMS: 45000, // Socket timeout for long-running operations
+    maxPoolSize: 10, // Maximum number of connections in the pool
+    minPoolSize: 2, // Minimum number of connections in the pool
+    maxIdleTimeMS: 30000, // Close connections after 30 seconds of inactivity
+    bufferMaxEntries: 0, // Disable mongoose buffering for immediate errors
+    retryWrites: true, // Retry failed writes
+    retryReads: true, // Retry failed reads
 };
 console.log(`Server starting in ${config_1.default.nodeEnv} mode...`);
 // Connect to MongoDB

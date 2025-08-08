@@ -78,8 +78,8 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Find the ticket by ID or invoice number, optionally filtered by event
-    let ticket;
+    // Build query for optimized database lookup
+    let query: any = {};
     if (ticketId) {
       // Ensure valid MongoDB ID
       if (!Types.ObjectId.isValid(ticketId)) {
@@ -89,21 +89,43 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
         });
         return;
       }
-      const query: any = { _id: ticketId };
-      if (eventId) {
-        query.event = eventId;
-      }
-      ticket = await Ticket.findOne(query);
+      query._id = ticketId;
     } else {
-      const query: any = { invoiceNo };
-      if (eventId) {
-        query.event = eventId;
-      }
-      ticket = await Ticket.findOne(query);
+      query.invoiceNo = invoiceNo;
+    }
+    
+    // Add event filter if provided
+    if (eventId) {
+      query.event = eventId;
     }
 
-    // Check if ticket exists
+    // Use findOneAndUpdate for atomic operation to prevent race conditions
+    const ticket = await Ticket.findOneAndUpdate(
+      { ...query, checkedIn: { $ne: true } }, // Only update if not already checked in
+      {
+        checkedIn: true,
+        checkInTime: new Date(),
+      },
+      {
+        new: true, // Return the updated document
+        runValidators: true, // Run schema validators
+      }
+    );
+
+    // Check if ticket exists and was updated
     if (!ticket) {
+      // Check if ticket exists but is already checked in
+      const existingTicket = await Ticket.findOne(query);
+      if (existingTicket) {
+        if (existingTicket.checkedIn) {
+          res.status(400).json({
+            success: false,
+            message: `${existingTicket.name} has already been checked in at ${existingTicket.checkInTime?.toLocaleString()}`,
+          });
+          return;
+        }
+      }
+      
       const message = eventId 
         ? 'Ticket not found for this event. This QR code may be for a different event.'
         : 'Ticket not found';
@@ -114,19 +136,14 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // Check if already checked in
-    if (ticket.checkedIn) {
-      res.status(400).json({
-        success: false,
-        message: `${ticket.name} has already been checked in at ${ticket.checkInTime?.toLocaleString()}`,
-      });
-      return;
-    }
+    // Log successful check-in for monitoring
+    logger.info('Guest checked in successfully', { 
+      invoiceNo: ticket.invoiceNo, 
+      name: ticket.name,
+      checkInTime: ticket.checkInTime 
+    });
 
-    // Update check-in status
-    ticket.checkedIn = true;
-    ticket.checkInTime = new Date();
-    await ticket.save();    // Return updated ticket
+    // Return updated ticket
     res.status(200).json({
       success: true,
       message: `Welcome ${ticket.name}! Check-in successful.`,
@@ -143,10 +160,10 @@ export const checkIn = async (req: Request, res: Response): Promise<void> => {
       },
     });
   } catch (error) {
-    logger.error('Error checking in guest', { error });
+    logger.error('Error checking in guest', { error, body: req.body });
     res.status(500).json({
       success: false,
-      message: 'Error checking in guest',
+      message: 'Error checking in guest. Please try again.',
     });
   }
 };

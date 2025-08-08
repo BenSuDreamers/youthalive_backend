@@ -87,8 +87,8 @@ const checkIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             });
             return;
         }
-        // Find the ticket by ID or invoice number, optionally filtered by event
-        let ticket;
+        // Build query for optimized database lookup
+        let query = {};
         if (ticketId) {
             // Ensure valid MongoDB ID
             if (!mongoose_1.Types.ObjectId.isValid(ticketId)) {
@@ -98,21 +98,37 @@ const checkIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
                 });
                 return;
             }
-            const query = { _id: ticketId };
-            if (eventId) {
-                query.event = eventId;
-            }
-            ticket = yield ticket_model_1.Ticket.findOne(query);
+            query._id = ticketId;
         }
         else {
-            const query = { invoiceNo };
-            if (eventId) {
-                query.event = eventId;
-            }
-            ticket = yield ticket_model_1.Ticket.findOne(query);
+            query.invoiceNo = invoiceNo;
         }
-        // Check if ticket exists
+        // Add event filter if provided
+        if (eventId) {
+            query.event = eventId;
+        }
+        // Use findOneAndUpdate for atomic operation to prevent race conditions
+        const ticket = yield ticket_model_1.Ticket.findOneAndUpdate(Object.assign(Object.assign({}, query), { checkedIn: { $ne: true } }), // Only update if not already checked in
+        {
+            checkedIn: true,
+            checkInTime: new Date(),
+        }, {
+            new: true, // Return the updated document
+            runValidators: true, // Run schema validators
+        });
+        // Check if ticket exists and was updated
         if (!ticket) {
+            // Check if ticket exists but is already checked in
+            const existingTicket = yield ticket_model_1.Ticket.findOne(query);
+            if (existingTicket) {
+                if (existingTicket.checkedIn) {
+                    res.status(400).json({
+                        success: false,
+                        message: `${existingTicket.name} has already been checked in at ${(_a = existingTicket.checkInTime) === null || _a === void 0 ? void 0 : _a.toLocaleString()}`,
+                    });
+                    return;
+                }
+            }
             const message = eventId
                 ? 'Ticket not found for this event. This QR code may be for a different event.'
                 : 'Ticket not found';
@@ -122,18 +138,13 @@ const checkIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             });
             return;
         }
-        // Check if already checked in
-        if (ticket.checkedIn) {
-            res.status(400).json({
-                success: false,
-                message: `${ticket.name} has already been checked in at ${(_a = ticket.checkInTime) === null || _a === void 0 ? void 0 : _a.toLocaleString()}`,
-            });
-            return;
-        }
-        // Update check-in status
-        ticket.checkedIn = true;
-        ticket.checkInTime = new Date();
-        yield ticket.save(); // Return updated ticket
+        // Log successful check-in for monitoring
+        logger_1.default.info('Guest checked in successfully', {
+            invoiceNo: ticket.invoiceNo,
+            name: ticket.name,
+            checkInTime: ticket.checkInTime
+        });
+        // Return updated ticket
         res.status(200).json({
             success: true,
             message: `Welcome ${ticket.name}! Check-in successful.`,
@@ -151,10 +162,10 @@ const checkIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         });
     }
     catch (error) {
-        logger_1.default.error('Error checking in guest', { error });
+        logger_1.default.error('Error checking in guest', { error, body: req.body });
         res.status(500).json({
             success: false,
-            message: 'Error checking in guest',
+            message: 'Error checking in guest. Please try again.',
         });
     }
 });
