@@ -101,7 +101,20 @@ const checkIn = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             query._id = ticketId;
         }
         else {
-            query.invoiceNo = invoiceNo;
+            // Clean invoice number to match database format
+            let cleanInvoiceNo = invoiceNo;
+            if (typeof cleanInvoiceNo === 'string') {
+                if (cleanInvoiceNo.startsWith('# INV-')) {
+                    cleanInvoiceNo = cleanInvoiceNo.substring(6);
+                }
+                else if (cleanInvoiceNo.startsWith('INV-')) {
+                    cleanInvoiceNo = cleanInvoiceNo.substring(4);
+                }
+                else if (cleanInvoiceNo.startsWith('# ')) {
+                    cleanInvoiceNo = cleanInvoiceNo.substring(2);
+                }
+            }
+            query.invoiceNo = cleanInvoiceNo;
         }
         // Add event filter if provided
         if (eventId) {
@@ -185,8 +198,21 @@ const lookupTicket = (req, res) => __awaiter(void 0, void 0, void 0, function* (
             });
             return;
         }
+        // Clean invoice number to match database format
+        let cleanInvoiceNo = invoiceNo;
+        if (typeof cleanInvoiceNo === 'string') {
+            if (cleanInvoiceNo.startsWith('# INV-')) {
+                cleanInvoiceNo = cleanInvoiceNo.substring(6);
+            }
+            else if (cleanInvoiceNo.startsWith('INV-')) {
+                cleanInvoiceNo = cleanInvoiceNo.substring(4);
+            }
+            else if (cleanInvoiceNo.startsWith('# ')) {
+                cleanInvoiceNo = cleanInvoiceNo.substring(2);
+            }
+        }
         // Create search criteria
-        const searchCriteria = { invoiceNo };
+        const searchCriteria = { invoiceNo: cleanInvoiceNo };
         // Filter by event if provided
         if (eventId) {
             searchCriteria.event = eventId;
